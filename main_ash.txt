@@ -39,10 +39,19 @@ class HandGestureObjectClass(object):
                 if previous_frame != None:
 
                     frame_foregnd  = cv2.subtract(frame,previous_frame)
-                    frame_xored = np.where(frame_foregnd != 0, 65536, 0)
+                    frame_denoised = np.where(frame_foregnd>=200,frame_foregnd,0)
+
+                    kernel = np.ones((5,5),np.uint8)                    
+                    frame_denoised = cv2.erode(frame_denoised,kernel,iterations=1)
+                    frame_denoised = cv2.dilate(frame_denoised,kernel,iterations=1)
+
+                    frame_xored = np.where(frame_denoised != 0, frame, 0)
 
 
-                    cv2.imshow('Kinect',frame_xored)
+
+
+                    print_frame = frame_xored << 8                    
+                    cv2.imshow('Kinect',print_frame)
 
                 previous_frame=frame
 
