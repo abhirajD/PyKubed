@@ -1,10 +1,10 @@
 **# #Things To-Do# #**
-* * Skeleton map
-* * Feature Extraction
-* * Gesture classification
-* * Augmented reality engine
-* * Modularize everything(API)
-* * Finish till gesture classification by 1-2-2016
+Skeleton map
+Feature Extraction
+Gesture classification
+Augmented reality engine
+Modularize everything(API)
+Finish till gesture classification by 1-2-2016
 
 ### What is this repository for? ###
 
