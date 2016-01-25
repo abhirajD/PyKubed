@@ -20,28 +20,41 @@ class HandGestureObjectClass(object):
         binaries = int(frame.max())
         if binaries <= 0:
             return 0
-        histogram, bins = numpy.histogram(frame, bins = binaries)
+        histogram, bins = np.histogram(frame, bins = binaries)
         histogram = histogram.tolist(); bins = bins.tolist(); 
         histogram[0 : 1] = [0, 0]
-        max_hist = bins[ histogram.index( max(histogram) ) ]
+        max_hist = bins[histogram.index( max(histogram) )]
         return max_hist
 
     def run(self):
+        print ':IN_RUN:Pulling Frames'
         previous_frame = None
+
 
         while(True):
             #Main event loop
             if self._kinect.has_new_depth_frame():
 
                 frame = self._kinect.get_last_depth_frame()
+                frame = frame.reshape(424,512)
 
-                if previous_frame != None:
+                if previous_frame != None and not np.array_equal(frame,previous_frame):
 
-                    frame = frame.reshape(424,512)    
+                    frame_foregnd  = cv2.subtract(frame,previous_frame)
+                    frame_xored = np.where(frame_foregnd > 250, previous_frame, 0)
+                    
+                    hand_depth = self.max_hist_depth(frame_xored)
+                    print hand_depth
+                    hand_filtered_frame = np.where(frame_xored > (hand_depth + 5),0 , frame_xored)
+                    hand_filtered_frame = np.where(hand_filtered_frame < (hand_depth - 5),0 , hand_filtered_frame)
 
-                cv2.imshow('Kinect',frame)
+                    hand_filtered_frame *= 32
+                    cv2.imshow('Kinect',hand_filtered_frame)
 
-                previous_frame=frame
+                else:
+                    print "Move your hand"
+                
+                previous_frame = frame
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
