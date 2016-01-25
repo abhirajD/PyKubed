@@ -39,15 +39,26 @@ class HandGestureObjectClass(object):
                 frame = frame.reshape(424,512)
 
                 if previous_frame != None and not np.array_equal(frame,previous_frame):
-
-                    frame_foregnd  = cv2.subtract(frame,previous_frame)
-                    frame_xored = np.where(frame_foregnd > 250, previous_frame, 0)
                     
+                    #Foreground Detection
+                    frame_foregnd  = cv2.subtract(frame,previous_frame)
+                    frame_denoised = np.where(frame_foregnd>=250,frame_foregnd,0)
+                    
+                    #Denoising by erosion
+                    kernel = np.ones((5,5),np.uint8)                    
+                    frame_denoised = cv2.erode(frame_denoised,kernel,iterations=1)
+                    frame_denoised = cv2.dilate(frame_denoised,kernel,iterations=1)
+                    
+                    # Depth frame XOR Denoised Frame
+                    frame_xored = np.where(frame_denoised != 0, frame, 0)
+                    
+                    #Depth of the closest object
                     hand_depth = self.max_hist_depth(frame_xored)
-                    print hand_depth
+                    print "Hand Depth: " + str(hand_depth)
                     hand_filtered_frame = np.where(frame_xored > (hand_depth + 5),0 , frame_xored)
                     hand_filtered_frame = np.where(hand_filtered_frame < (hand_depth - 5),0 , hand_filtered_frame)
 
+                    #Printing Frame
                     hand_filtered_frame *= 32
                     cv2.imshow('Kinect',hand_filtered_frame)
 
