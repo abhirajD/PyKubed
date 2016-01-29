@@ -51,24 +51,33 @@ class HandGestureObjectClass(object):
             print ':drawing bone'
 
             print_frame = cv2.line(print_frame, start, end, color, 8)
+            
         except: # need to catch it due to possible invalid positions (with inf)
             pass
 
     def draw_body(self, joints, jointPoints, color,print_frame):
-        
-        # Right Arm    
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderRight, PyKinectV2.JointType_ElbowRight,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowRight, PyKinectV2.JointType_WristRight,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_HandRight,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandRight, PyKinectV2.JointType_HandTipRight,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_ThumbRight,print_frame);
 
-        # Left Arm
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderLeft, PyKinectV2.JointType_ElbowLeft,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowLeft, PyKinectV2.JointType_WristLeft,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_HandLeft,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandLeft, PyKinectV2.JointType_HandTipLeft,print_frame);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_ThumbLeft,print_frame);
+
+        rx=jointPoints[PyKinectV2.JointType_HandRight].x
+        ry=jointPoints[PyKinectV2.JointType_HandRight].y
+        lx=jointPoints[PyKinectV2.JointType_HandLeft].x
+        ly=jointPoints[PyKinectV2.JointType_HandLeft].y
+
+        print_frame=cv2.circle(print_frame,(rx,ry), 100,(255,0,0),1)
+        print_frame=cv2.circle(print_frame,(lx,ly), 100,(255,0,0),1)
+        # # Right Arm    
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderRight, PyKinectV2.JointType_ElbowRight,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowRight, PyKinectV2.JointType_WristRight,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_HandRight,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandRight, PyKinectV2.JointType_HandTipRight,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_ThumbRight,print_frame);
+
+        # # Left Arm
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderLeft, PyKinectV2.JointType_ElbowLeft,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowLeft, PyKinectV2.JointType_WristLeft,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_HandLeft,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandLeft, PyKinectV2.JointType_HandTipLeft,print_frame);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_ThumbLeft,print_frame);
 
        
     
@@ -83,33 +92,40 @@ class HandGestureObjectClass(object):
         while (True):
             # --- Main event loop
            
-            if self._kinect.has_new_depth_frame():
+            if self._kinect.has_new_depth_frame() or self._kinect.has_new_body_frame():
+                print ':IN_RUN:depth_frame received'
+
                 depth_frame = self._kinect.get_last_depth_frame()
-                print_frame = 32*depth_frame.reshape(424,512)
-                
+                print_frame = 32*depth_frame.reshape(424,512)                
 
-
-            # --- Cool! We have a body frame, so can get skeletons
-            if self._kinect.has_new_body_frame(): 
+            
                 self._bodies = self._kinect.get_last_body_frame()
 
-            # --- draw skeletons to _frame_surface
-            if self._bodies is not None:
-                print ':IN_RUN:body received'
- 
-                for i in range(0, self._kinect.max_body_count):
-                    body = self._bodies.bodies[i]
-                    if not body.is_tracked: 
-                        continue 
-                    
-                    joints = body.joints 
-                    # convert joint coordinates to color space 
-                    joint_points = self._kinect.body_joints_to_depth_space(joints)
-                    self.draw_body(joints, joint_points, SKELETON_COLORS[i],print_frame)
+                # --- draw skeletons to _frame_surface
+                if self._bodies is not None:
+                    print ':IN_RUN:body received'
 
-            if print_frame != None:
+                    rx=jointPoints[PyKinectV2.JointType_HandRight].x
+                    ry=jointPoints[PyKinectV2.JointType_HandRight].y
+                    lx=jointPoints[PyKinectV2.JointType_HandLeft].x
+                    ly=jointPoints[PyKinectV2.JointType_HandLeft].y
 
-                cv2.imshow('Depthimage',print_frame)
+                    print_frame=cv2.circle(print_frame,(rx,ry), 100,(255,0,0),1)
+                    print_frame=cv2.circle(print_frame,(lx,ly), 100,(255,0,0),1)
+     
+                    # for i in range(0, self._kinect.max_body_count):
+                    #     body = self._bodies.bodies[i]
+                    #     if not body.is_tracked: 
+                    #         continue 
+                        
+                    #     joints = body.joints 
+                    #     # convert joint coordinates to color space 
+                    #     joint_points = self._kinect.body_joints_to_depth_space(joints)
+                    #     self.draw_body(joints, joint_points, SKELETON_COLORS[i],print_frame)
+
+                if print_frame != None:
+
+                    cv2.imshow('Depthimage',print_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
