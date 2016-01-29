@@ -26,19 +26,6 @@ class BodyGameRuntime(object):
         # Kinect runtime object, we want only depth and body frames
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth) 
 
-    def subtract_frames(self,frame,previous_frame):
-
-        #for i in range(0,424):
-        #   for j in range(0,512):
-        #       frame_foregnd=frame[i,j]-previous_frame[i,j]
-        frame_foregnd = numpy.absolute(numpy.subtract(previous_frame,frame))
-
-        # print numpy.shape(frame_foregnd)
-
-        return frame_foregnd
-
- 
-
     def max_hist_depth(self, frame):    
 
         #print 'FRAME_MAX = ' + str(frame.max())
@@ -86,10 +73,7 @@ class BodyGameRuntime(object):
 
             if cv2.waitKey(1) & 0xFF ==ord('q'):
                 break
-            
-            
  
-
         # Close our Kinect sensor, close the window and quit.
 
         self._kinect.close() 

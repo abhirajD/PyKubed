@@ -32,35 +32,22 @@ class HandGestureObjectClass(object):
         while(True):
             #Main event loop
             if self._kinect.has_new_depth_frame():
-
                 frame = self._kinect.get_last_depth_frame()
                 frame = frame.reshape(424,512)
-
                 if previous_frame != None:
-
                     frame_foregnd  = cv2.subtract(frame,previous_frame)
                     frame_denoised = np.where(frame_foregnd>=200,frame_foregnd,0)
-
                     kernel = np.ones((5,5),np.uint8)                    
                     frame_denoised = cv2.erode(frame_denoised,kernel,iterations=1)
-                    frame_denoised = cv2.dilate(frame_denoised,kernel,iterations=1)
-
+                    #frame_denoised = cv2.dilate(frame_denoised,kernel,iterations=1)
                     frame_xored = np.where(frame_denoised != 0, frame, 0)
-
-
-
-
                     print_frame = frame_xored << 8                    
                     cv2.imshow('Kinect',print_frame)
-
                 previous_frame=frame
-
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
-
 
 HandGestureObject = HandGestureObjectClass();
 HandGestureObject.run();
