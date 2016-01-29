@@ -10,10 +10,11 @@ import cv2
 
 class HandGestureObjectClass(object):
 
+
     def __init__(self):
 
         # Kinect runtime object, we want only depth and body depth_frames
-        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth) 
+        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth|PyKinectV2.FrameSourceTypes_Color) 
 
     def max_hist_depth(self, frame):    
         #print 'FRAME_MAX = ' + str(frame.max())
@@ -26,6 +27,12 @@ class HandGestureObjectClass(object):
         max_hist = bins[histogram.index( max(histogram) )]
         return max_hist
 
+    def map_depth_to_color(self,depth_x,depth_y):
+        color_x = depth_x * 1920 / 512
+        color_y = depth_y * 1080 / 424
+        
+
+        return 
     def run(self):
         print ':IN_RUN:Pulling Frames'
         previous_depth_frame = None
@@ -35,21 +42,25 @@ class HandGestureObjectClass(object):
 
         while(True):
             #Main event loop
-            if self._kinect.has_new_depth_frame() and self._kinect.has_new_color_frame:
+            if self._kinect.has_new_depth_frame() or self._kinect.has_new_color_frame():
 
                 depth_frame = self._kinect.get_last_depth_frame()
 
                 depth_frame = depth_frame.reshape(424,512)
+                #depth_frame = depth_frame.resize((424*2,512*2))
 
                 color_frame = self._kinect.get_last_color_frame()
-                #print color_frame.shape()
-                #color_frame = color_frame.reshape(424,512)
+                #print 'color'
+                color_frame = color_frame.reshape(1080,1920,4)
+                #color_frame = np.resize(color_frame,(1080,1920,4))
+                #color_frame = color_frame.resize((1080/2,1920/2,4))
 
                 if previous_depth_frame != None and not np.array_equal(depth_frame,previous_depth_frame):
                     
                     # Foreground Detection
                     depth_frame_foregnd  = cv2.subtract(depth_frame,previous_depth_frame)
                     depth_frame_denoised = np.where(depth_frame_foregnd>=100,depth_frame_foregnd,0)
+                    depth_frame_denoised = cv2.medianBlur(depth_frame_denoised,5)
                     
                     # Denoising by erosion
                     kernel = np.ones((5,5),np.uint8)                    
@@ -61,10 +72,11 @@ class HandGestureObjectClass(object):
                     
                     # Depth of the closest object
                     hand_depth = self.max_hist_depth(depth_frame_xored)
-                    print "Hand Depth: " + str(hand_depth)
+                    # print "Hand Depth: " + str(hand_depth)
                     hand_filtered_depth_frame = np.where(depth_frame> (hand_depth + 20),0 , depth_frame)
                     hand_filtered_depth_frame = np.where(hand_filtered_depth_frame < (hand_depth - 20), 0 , hand_filtered_depth_frame)
 
+                    
                     im = np.array(hand_filtered_depth_frame * 255, dtype = np.uint8)
 
                     ret,thresh = cv2.threshold(im,100,255,cv2.THRESH_BINARY)
@@ -74,28 +86,24 @@ class HandGestureObjectClass(object):
 
                         cnt = contours[0]
                         M = cv2.moments(cnt)
-                        print M
+                        # print M
                         if M['m00'] != 0:
-                            print ':'
+                            # print ':'
 
                             cx = int(M['m10']/M['m00'])
-                            print cx
+                            # print cx
                             cy = int(M['m01']/M['m00'])
-                            print cy
+                            # print cy
                             
                             
                     thresh = cv2.circle(thresh,(cx,cy), 10,(255,0,0),1)
                   
-
                     #Printing depth_frame
-                    hand_filtered_depth_frame=thresh
+                    hand_filtered_depth_frame=depth_frame
                     hand_filtered_depth_frame *= 32
                     cv2.imshow('Kinect',hand_filtered_depth_frame)
-                    # cv2.imshow('color_frame',color_frame)
+                    cv2.imshow('COLOR',color_frame)
 
-                else:
-                    print "Move your hand"
-                
                 previous_depth_frame = depth_frame
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
