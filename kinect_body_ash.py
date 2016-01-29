@@ -105,23 +105,28 @@ class HandGestureObjectClass(object):
                 if self._bodies is not None:
                     print ':IN_RUN:body received'
 
-                    rx=jointPoints[PyKinectV2.JointType_HandRight].x
-                    ry=jointPoints[PyKinectV2.JointType_HandRight].y
-                    lx=jointPoints[PyKinectV2.JointType_HandLeft].x
-                    ly=jointPoints[PyKinectV2.JointType_HandLeft].y
 
-                    print_frame=cv2.circle(print_frame,(rx,ry), 100,(255,0,0),1)
-                    print_frame=cv2.circle(print_frame,(lx,ly), 100,(255,0,0),1)
+                    
      
-                    # for i in range(0, self._kinect.max_body_count):
-                    #     body = self._bodies.bodies[i]
-                    #     if not body.is_tracked: 
-                    #         continue 
+                    for i in range(0, self._kinect.max_body_count):
+                        body = self._bodies.bodies[i]
+                        if not body.is_tracked: 
+                            continue 
                         
-                    #     joints = body.joints 
-                    #     # convert joint coordinates to color space 
-                    #     joint_points = self._kinect.body_joints_to_depth_space(joints)
-                    #     self.draw_body(joints, joint_points, SKELETON_COLORS[i],print_frame)
+                        joints = body.joints 
+                        # convert joint coordinates to color space 
+                        joint_points = self._kinect.body_joints_to_depth_space(joints)
+                        print ':'
+
+                        rx=joint_points[PyKinectV2.JointType_HandRight].x
+                        ry=joint_points[PyKinectV2.JointType_HandRight].y
+                        lx=joint_points[PyKinectV2.JointType_HandLeft].x
+                        ly=joint_points[PyKinectV2.JointType_HandLeft].y
+                        print rx
+
+                        print_frame=cv2.circle(print_frame,(int(rx),int(ry)), 10,(255,0,0),5)
+                        print_frame=cv2.circle(print_frame,(int(lx),int(ly)), 10,(255,0,0),5)
+                        #self.draw_body(joints, joint_points, SKELETON_COLORS[i],print_frame)
 
                 if print_frame != None:
 
