@@ -7,17 +7,6 @@ from matplotlib import pyplot as plt
 import scipy
 import numpy as np
 import cv2
-import pygame
-
-
-# colors for drawing different bodies 
-SKELETON_COLORS = [pygame.color.THECOLORS["red"], 
-                  pygame.color.THECOLORS["blue"], 
-                  pygame.color.THECOLORS["green"], 
-                  pygame.color.THECOLORS["orange"], 
-                  pygame.color.THECOLORS["purple"], 
-                  pygame.color.THECOLORS["yellow"], 
-                  pygame.color.THECOLORS["violet"]]
 
 
 class HandGestureObjectClass(object):
@@ -48,7 +37,7 @@ class HandGestureObjectClass(object):
                 print ':IN_RUN:depth_frame received'
 
                 depth_frame = self._kinect.get_last_depth_frame()
-                print_frame = 32*depth_frame.reshape(424,512)                
+                depth_frame = depth_frame.reshape(424,512)                
 
             
                 self._bodies = self._kinect.get_last_body_frame()
@@ -70,19 +59,35 @@ class HandGestureObjectClass(object):
                         joint_points = self._kinect.body_joints_to_depth_space(joints)
                         print ':'
 
-                        rx=joint_points[PyKinectV2.JointType_HandRight].x
-                        ry=joint_points[PyKinectV2.JointType_HandRight].y
-                        lx=joint_points[PyKinectV2.JointType_HandLeft].x
-                        ly=joint_points[PyKinectV2.JointType_HandLeft].y
-                        print rx
+                        right_x=int(joint_points[PyKinectV2.JointType_HandRight].x)
+                        right_y=int(joint_points[PyKinectV2.JointType_HandRight].y)
+                        left_x=int(joint_points[PyKinectV2.JointType_HandLeft].x)
+                        left_y=int(joint_points[PyKinectV2.JointType_HandLeft].y)
+                        #print right_x
+                        
+                        right_hand_depth=depth_frame[right_x,right_y]
+                        left_hand_depth=depth_frame[left_x,left_y]
+                        print 'ld'+str(left_hand_depth)
+                        print 'rd'+str(right_hand_depth)
 
-                        print_frame=cv2.circle(print_frame,(int(rx),int(ry)), 10,(255,0,0),5)
-                        print_frame=cv2.circle(print_frame,(int(lx),int(ly)), 10,(255,0,0),5)
+
+                        
+                        hand_filtered_depth_frame = np.where(depth_frame< (left_hand_depth + 20) ,0 , depth_frame)
+                        hand_filtered_depth_frame = np.where(depth_frame> (left_hand_depth - 20) ,0 ,  depth_frame)
+                        hand_filtered_depth_frame = np.where(hand_filtered_depth_frame>100, 65535, 0)
+
+
+                        print_frame=4*hand_filtered_depth_frame
+                        print_frame=cv2.circle(print_frame,(right_x,right_y), 10,(255,0,0),5)
+                        print_frame=cv2.circle(print_frame,(left_x,left_y), 10,(255,0,0),5)
+
+
 
 
                 if print_frame != None:
-
+                    dpt = 4*depth_frame
                     cv2.imshow('Depthimage',print_frame)
+                    cv2.imshow('OG',dpt)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
