@@ -36,13 +36,14 @@ class HandGestureObjectClass(object):
             if self._kinect.has_new_depth_frame():
 
                 frame = self._kinect.get_last_depth_frame()
+                frame=frame/32
                 frame = frame.reshape(424,512)
 
                 if previous_frame != None and not np.array_equal(frame,previous_frame):
                     
                     #Foreground Detection
                     frame_foregnd  = cv2.subtract(frame,previous_frame)
-                    frame_denoised = np.where(frame_foregnd>=100,frame_foregnd,0)
+                    frame_denoised = np.where(frame_foregnd>0,frame_foregnd,0)
                     
                     #Denoising by erosion
                     kernel = np.ones((5,5),np.uint8)                    
@@ -50,28 +51,14 @@ class HandGestureObjectClass(object):
                     frame_denoised = cv2.dilate(frame_denoised,kernel,iterations=1)
                     
                     # Depth frame XOR Denoised Frame
-                    frame_xored = np.where(frame_denoised != 0, previous_frame, 0)
+                    frame_xored = np.where(frame_denoised != 0, frame, 0)
                     
                     #Depth of the closest object
                     hand_depth = self.max_hist_depth(frame_xored)
                     print "Hand Depth: " + str(hand_depth)
-                    hand_filtered_frame = np.where(frame> (hand_depth + 20),0 , frame)
-                    hand_filtered_frame = np.where(hand_filtered_frame < (hand_depth - 20), 0 , hand_filtered_frame)
+                    hand_filtered_frame = np.where(previous_frame > (hand_depth + 5),0 , previous_frame)
+                    hand_filtered_frame = np.where(hand_filtered_frame < (hand_depth - 5),0 , hand_filtered_frame)
 
-                    ret,thresh = cv2.threshold(hand_filtered_frame,32767,65535,cv2.THRESH_BINARY)
-                    contours,hierarchy = cv2.findContours(hand_filtered_frame, 1, 2)
-                    
-                    cnt = contours[0]
-                    M = cv2.moments(cnt)
-                    print ':'
-                    print M
-                    cx = int(M['m10']/M['m00'])
-                    print cx
-                    cy = int(M['m01']/M['m00'])
-                    print cy
-
-                    #Printing Frame
-                    hand_filtered_frame *= 32
                     cv2.imshow('Kinect',hand_filtered_frame)
 
                 else:
