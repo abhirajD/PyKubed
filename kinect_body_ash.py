@@ -72,14 +72,29 @@ class HandGestureObjectClass(object):
 
 
                         
-                        hand_filtered_depth_frame = np.where(depth_frame< (left_hand_depth + 20) ,0 , depth_frame)
-                        hand_filtered_depth_frame = np.where(depth_frame> (left_hand_depth - 20) ,0 ,  depth_frame)
-                        hand_filtered_depth_frame = np.where(hand_filtered_depth_frame>100, 65535, 0)
+                        # hand_filtered_depth_frame = np.where(depth_frame< (left_hand_depth + 20) ,0 , depth_frame)
+                        # hand_filtered_depth_frame = np.where(depth_frame> (left_hand_depth - 20) ,0 ,  depth_frame)
+                        # hand_filtered_depth_frame = np.where(hand_filtered_depth_frame>100, 65535, 0)
 
 
-                        print_frame=4*hand_filtered_depth_frame
-                        print_frame=cv2.circle(print_frame,(right_x,right_y), 10,(255,0,0),5)
-                        print_frame=cv2.circle(print_frame,(left_x,left_y), 10,(255,0,0),5)
+                        print_frame=4*depth_frame
+                        # print_frame=cv2.circle(print_frame,(right_x,right_y), 10,(255,0,0),5)
+                        # print_frame=cv2.circle(print_frame,(left_x,left_y), 10,(255,0,0),5)
+
+                        c = [left_x,left_y]
+                        #print type(c)
+
+                        d = 10
+
+                        it = np.nditer(print_frame, flags=['multi_index'],op_flags=['readwrite'])
+                        while not it.finished:
+                            p=it.multi_index
+                            
+                            if (p[0]>c[0]+d or p[0]<c[0]-d) or (p[1]>c[1]+d or p[1]<c[1]-d) :
+                            
+                                it[0] = 0
+                                #print "%d <%s>" % (it[0], it.multi_index),
+                            it.iternext()
 
 
 
