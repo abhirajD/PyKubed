@@ -17,11 +17,13 @@ class HandGestureObjectClass(object):
 
     def neighbourhood(self, array, radius, seed):
         temp = np.nditer(array, flags = ['multi_index'], op_flags = ['readwrite'])
-        
+        [a,b] = np.shape(array)
+        neighbour = np.zeros(a*b)
+        neighbour = neighbour.reshape(a,b)
         for i in range(seed[0]-radius, seed[0]+radius):
             for j in range(seed[1]-radius, seed[1]+radius):
-                
-        return array
+                neighbour[i,j] = array[i,j]
+        return neighbour
 
     def depth_average(self, array, radius,seed):
         array = self.neighbourhood(array, radius, seed)
