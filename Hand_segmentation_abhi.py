@@ -3,7 +3,6 @@ from pykinect2.PyKinectV2 import *
 from pykinect2 import PyKinectRuntime
 
 from matplotlib import pyplot as plt
-import SimpleCV.ImageClass as scv
 
 import scipy
 import numpy as np
@@ -39,18 +38,27 @@ class Kinect_infrared(object):
                 iframe = self._kinect.get_last_infrared_frame()
                 iframe *= 1
                 iframe = iframe.reshape(424,512)
-                cv2.imshow('Infrared',iframe)
+                iframe = np.array(iframe/16, dtype = np.uint8)
 
                 dframe = self._kinect.get_last_depth_frame()
                 dframe = dframe.reshape(424,512)
                 dframe = np.array(dframe/16, dtype = np.uint8)
-                gaussian_thresh = cv2.adaptiveThreshold(dframe, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV,11,2)
+
                 blur = cv2.GaussianBlur(dframe,(5,5),0)
-                ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-                # dframe = cv2.findContours(dframe, mode = cv2.RETR_EXTERNAL, method = cv2.CHAIN_APPROX_NONE)
-                cv2.imshow('Gaussian_thresh', gaussian_thresh)
+                ret3,thresh = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+                
+                kernel = np.ones((3,3),np.uint8)
+                opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
+
+                dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
+                ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+
+                anded = cv2.bitwise_and(sure_fg,dframe)
+
                 cv2.imshow('Gaussian_blur', blur)
-                cv2.imshow('Gaussian_otsu', th3)
+                cv2.imshow('thresh', thresh)
+                cv2.imshow('dist_transform',sure_fg)
+                cv2.imshow('and', anded)
 
 
 
