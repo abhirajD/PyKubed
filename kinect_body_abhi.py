@@ -94,17 +94,17 @@ class HandGestureObjectClass(object):
                         neighbour = np.array(depth_frame)
                         neighbour *= 0
 
-                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)
-                        left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered, left_hand)
+                        right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
+                        left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered, left_hand),depth_frame)
+                        right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                         
-                        hand_segmented = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
-                        hand_segmented = cv2.bitwise_and(hand_segmented,depth_frame)
-                        ret,hand_segmented = cv2.threshold(hand_segmented,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
                         
 
-            if hand_segmented != None:
+            if print_frame != None:
                 dpt = depth_frame
-                cv2.imshow('Hand Filtered',hand_segmented)
+                cv2.imshow('Hand Filtered',print_frame)
             
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
