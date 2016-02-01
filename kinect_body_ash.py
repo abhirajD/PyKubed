@@ -15,20 +15,36 @@ class HandGestureObjectClass(object):
         # here we will store skeleton data 
         self._bodies = None    
     
-    def neighbourhood(self, array, radius, seed):
+    def neighbourhood_old(self, array, radius, seed, depth):
         # temp = np.nditer(array, flags = ['multi_index'], op_flags = ['readwrite'])
         #cv2.imshow('neigh', array)
         # print 'in neighbour'
         temp = 0
         [a,b] = np.shape(array)
-        neighbour = np.zeros(a*b)
-        neighbour = neighbour.reshape(a,b)
+        neighbour = np.array(array)
+        neighbour *= 0
         for i in range(seed[0]-radius, seed[0]+radius):
             for j in range(seed[1]-radius, seed[1]+radius):
                 temp+=array[j,i]
-                neighbour[j,i] = array[j,i]
+                if array[j,i] < depth+3:
+
+                    neighbour[j,i] = array[j,i]
+                else:
+                    neighbour[j,i] = 0
+
         # cv2.imshow('neigh', array)
         return neighbour,temp/(2*radius+1)^2
+
+    def neighbourhood(self, array, radius, seed, depth):
+        [a,b] = np.shape(array)
+        neighbour = np.array(array)
+        neighbour *= 0
+        # for i in range(seed[0]-radius, seed[0]+radius):
+        #     for j in range(seed[1]-radius, seed[1]+radius):
+        #         neighbour[j,i] = array[j,i]
+
+        neighbour[0:2*radius+1, 0:2*radius+1]= array[seed[0]-radius:seed[0]+radius, seed[1]-radius:seed[1]+radius]
+        return neighbour
 
     def max_hist_depth(self, frame):    
         #print 'FRAME_MAX = ' + str(frame.max())
@@ -51,11 +67,10 @@ class HandGestureObjectClass(object):
             if self._kinect.has_new_depth_frame() or self._kinect.has_new_body_frame():
 
                 depth_frame = self._kinect.get_last_depth_frame()
-                depth_frame = np.array(depth_frame, dtype= np.uint8)
+                depth_frame = np.array(depth_frame/16, dtype= np.uint8)
                 print depth_frame.max()
                 print '_'
                 depth_frame = depth_frame.reshape(424,512)                
-                print_frame = depth_frame
                 self._bodies = self._kinect.get_last_body_frame()
 
                 # --- draw skeletons to _frame_surface
@@ -98,33 +113,35 @@ class HandGestureObjectClass(object):
 
                     #print type(c)
 
-                    d = 30
-                    if print_frame != None:
-                        right_hand_filtered_depth_frame,avg1 = self.neighbourhood(print_frame,d,right_hand)
-                        left_hand_filtered_depth_frame,avg2 = self.neighbourhood(print_frame,d,left_hand)
+                    d = 50
+                    if depth_frame != None:
+                        right_hand_filtered_depth_frame,avg1 = self.neighbourhood(depth_frame,d,right_hand,right_hand_depth)
+                        left_hand_filtered_depth_frame,avg2 = self.neighbourhood(depth_frame,d,left_hand,left_hand_depth)
+                        tp = depth_frame
                         #img_grey = cv2.cvtColor(hand_filtered_depth_frame, cv2.COLOR_BGR2GRAY)
-                        right_hand_filtered_depth_frame = np.array(right_hand_filtered_depth_frame/16, dtype = np.uint8)
-                        left_hand_filtered_depth_frame = np.array(left_hand_filtered_depth_frame/16, dtype = np.uint8)
+                        # right_hand_filtered_depth_frame = np.array(right_hand_filtered_depth_frame/16, dtype = np.uint8)
+                        # left_hand_filtered_depth_frame = np.array(left_hand_filtered_depth_frame/16, dtype = np.uint8)
                         
-                        blur1 = cv2.GaussianBlur(right_hand_filtered_depth_frame,(5,5),0)
-                        ret1,thresh1 = cv2.threshold(blur1,right_hand_depth-10,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-                        # thresh1 = cv2.adaptiveThreshold(blur1,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY_INV,11,2)
+                        # blur1 = cv2.GaussianBlur(right_hand_filtered_depth_frame,(5,5),0)
+                        # ret1,thresh1 = cv2.threshold(blur1,right_hand_depth-10,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        # # thresh1 = cv2.adaptiveThreshold(blur1,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY_INV,11,2)
 
-                        # kernel = np.ones((3,3),np.uint8)
-                        # opening1 = cv2.morphologyEx(thresh1,cv2.MORPH_OPEN,kernel, iterations = 2)
+                        # # kernel = np.ones((3,3),np.uint8)
+                        # # opening1 = cv2.morphologyEx(thresh1,cv2.MORPH_OPEN,kernel, iterations = 2)
 
-                        # dist_transform1 = cv2.distanceTransform(opening1,cv2.DIST_L2,5)
-                        # ret1, sure_fg1 = cv2.threshold(dist_transform1,0.3*dist_transform1.max(),255,0)
+                        # # dist_transform1 = cv2.distanceTransform(opening1,cv2.DIST_L2,5)
+                        # # ret1, sure_fg1 = cv2.threshold(dist_transform1,0.3*dist_transform1.max(),255,0)
 
-                        blur2 = cv2.GaussianBlur(left_hand_filtered_depth_frame,(5,5),0)
-                        ret2,thresh2 = cv2.threshold(blur2,avg2,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        # blur2 = cv2.GaussianBlur(left_hand_filtered_depth_frame,(5,5),0)
+                        # ret2,thresh2 = cv2.threshold(blur2,avg2,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 
-                        # ret1,thresh1 = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY)
-                        # ret2,thresh2 = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY)
+                        ret1,thresh1 = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
+                        ret2,thresh2 = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
 
                         # thresh = cv2.adaptiveThreshold(img_grey, 0, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
-                        print_frame = thresh1+thresh2
+                        # print_frame = thresh1+thresh2
+                        print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
 
                     # it = np.nditer(print_frame, flags=['multi_index'],op_flags=['readwrite'])
                     # while not it.finished:
@@ -145,8 +162,9 @@ class HandGestureObjectClass(object):
 
             if print_frame != None:
                 dpt = depth_frame
-                cv2.imshow('Depthimage',print_frame)
-                cv2.imshow('OG',dpt)
+                cv2.imshow('Hand Filtered',print_frame)
+                cv2.imshow('OG',tp)
+
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
