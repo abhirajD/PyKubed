@@ -12,40 +12,25 @@ class HandGestureObjectClass(object):
         # Kinect runtime object, we want only color and body frames 
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Body)
 
-        # here we will store skeleton data 
         self._bodies = None    
     
-    def neighbourhood_old(self, array, radius, seed, depth):
-        # temp = np.nditer(array, flags = ['multi_index'], op_flags = ['readwrite'])
-        #cv2.imshow('neigh', array)
-        # print 'in neighbour'
-        temp = 0
-        [a,b] = np.shape(array)
+
+    def neighbourhood(self, array, radius, seed):
+    
         neighbour = np.array(array)
         neighbour *= 0
-        for i in range(seed[0]-radius, seed[0]+radius):
-            for j in range(seed[1]-radius, seed[1]+radius):
-                temp+=array[j,i]
-                if array[j,i] < depth+3:
+        
+        temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint8)
+        ret,temp = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        return temp
 
-                    neighbour[j,i] = array[j,i]
-                else:
-                    neighbour[j,i] = 0
-
-        # cv2.imshow('neigh', array)
-        return neighbour,temp/(2*radius+1)^2
-
-    def neighbourhood(self, array, radius, seed, depth):
-        [a,b] = np.shape(array)
-        neighbour = np.array(array)
-        neighbour *= 0
-        block = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint8)
-        # blur = cv2.GaussianBlur(block,(5,5),0)
-        ret,segmented = cv2.threshold(block,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-        neighbour[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius] = segmented
-        return neighbour
-
-    def max_hist_depth(self, frame):
+    def merge(self, array_big, array_small, seed ):
+        [a,b] = np.shape(array_small)
+        array_big[seed[1]-b/2:seed[1]+b/2, seed[0]-a/2:seed[0]+a/2] = array_small
+        return array_big
+    
+    def max_hist_depth(self, frame):    
+        #print 'FRAME_MAX = ' + str(frame.max())
         binaries = int(frame.max())
         if binaries <= 0:
             return 0
@@ -65,25 +50,28 @@ class HandGestureObjectClass(object):
             if self._kinect.has_new_depth_frame() or self._kinect.has_new_body_frame():
 
                 depth_frame = self._kinect.get_last_depth_frame()
+
                 depth_frame = np.array(depth_frame/16, dtype= np.uint8)
-                print depth_frame.max()
-                print '_'
-                depth_frame = depth_frame.reshape(424,512)                
+                depth_frame = depth_frame.reshape(424,512)
+
                 self._bodies = self._kinect.get_last_body_frame()
 
                 if self._bodies is not None:
-                    body = self._bodies.bodies[0]
+                    #first detected body taken
+                    body = self._bodies.bodies[0]   
                     if not body.is_tracked: 
                         continue 
                     
                     joints = body.joints 
+
+                    # convert joint coordinates to color space 
                     joint_points = self._kinect.body_joints_to_depth_space(joints)
 
                     right_x=int(joint_points[PyKinectV2.JointType_HandRight].x)
                     right_y=int(joint_points[PyKinectV2.JointType_HandRight].y)
                     left_x=int(joint_points[PyKinectV2.JointType_HandLeft].x)
                     left_y=int(joint_points[PyKinectV2.JointType_HandLeft].y)
-            
+                   
                     right_x = right_x if right_x < 424 else 423
                     right_y = right_y if right_y < 512 else 511
                     left_x = left_x if left_x < 424 else 423
@@ -92,28 +80,40 @@ class HandGestureObjectClass(object):
                     right_hand_depth = depth_frame[right_x,right_y]
                     left_hand_depth = depth_frame[left_x,left_y]
                     print 'ld:' + str(left_hand_depth)+'\trd:' + str(right_hand_depth)
-                 
+                   
                     right_hand = [right_x,right_y]
                     left_hand = [left_x,left_y]
 
+                    #print type(c)
+
                     d = 50
-
                     if depth_frame != None:
-                        right_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,right_hand,right_hand_depth)
-                        left_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,left_hand,left_hand_depth)
+                        right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
+                        left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
+
+                        neighbour = np.array(depth_frame)
+                        neighbour *= 0
+
+                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)
+                        left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered, left_hand)
                         
-                        print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
-                        print_frame = cv2.bitwise_and(print_frame,depth_frame)
+                        hand_segmented = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
+                        hand_segmented = cv2.bitwise_and(hand_segmented,depth_frame)
+                        ret,hand_segmented = cv2.threshold(hand_segmented,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        
 
-            if print_frame != None:
+            if hand_segmented != None:
                 dpt = depth_frame
-                cv2.imshow('Hand Filtered',print_frame)
-                cv2.imshow('OG',depth_frame)
-
-
+                cv2.imshow('Hand Filtered',hand_segmented)
+            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+        cv2.imshow('OG',depth_frame)
+
+   
+
+        # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
 
 
