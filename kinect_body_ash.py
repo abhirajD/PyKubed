@@ -43,7 +43,12 @@ class HandGestureObjectClass(object):
         #     for j in range(seed[1]-radius, seed[1]+radius):
         #         neighbour[j,i] = array[j,i]
 
-        neighbour[0:2*radius+1, 0:2*radius+1]= array[seed[0]-radius:seed[0]+radius, seed[1]-radius:seed[1]+radius]
+        temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint8)
+        
+        # temp = temp.reshape(2*radius,2*radius)  
+        ret,temp = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+
+        neighbour[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius] = temp
         return neighbour
 
     def max_hist_depth(self, frame):    
@@ -115,8 +120,8 @@ class HandGestureObjectClass(object):
 
                     d = 50
                     if depth_frame != None:
-                        right_hand_filtered_depth_frame,avg1 = self.neighbourhood(depth_frame,d,right_hand,right_hand_depth)
-                        left_hand_filtered_depth_frame,avg2 = self.neighbourhood(depth_frame,d,left_hand,left_hand_depth)
+                        right_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,right_hand,right_hand_depth)
+                        left_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,left_hand,left_hand_depth)
                         tp = depth_frame
                         #img_grey = cv2.cvtColor(hand_filtered_depth_frame, cv2.COLOR_BGR2GRAY)
                         # right_hand_filtered_depth_frame = np.array(right_hand_filtered_depth_frame/16, dtype = np.uint8)
