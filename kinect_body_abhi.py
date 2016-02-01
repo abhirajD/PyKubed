@@ -99,11 +99,10 @@ class HandGestureObjectClass(object):
                     d = 50
 
                     if depth_frame != None:
-                        right_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,right_hand,right_hand_depth)
-                        left_hand_filtered_depth_frame = self.neighbourhood(depth_frame,d,left_hand,left_hand_depth)
+                        right_hand_filtered_depth_frame = cv2.bitwise_and(self.neighbourhood(depth_frame,d,right_hand,right_hand_depth),depth_frame)
+                        left_hand_filtered_depth_frame = cv2.bitwise_and(self.neighbourhood(depth_frame,d,left_hand,left_hand_depth),depth_frame)
                         
                         print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
-                        print_frame = cv2.bitwise_and(print_frame,depth_frame)
 
             if print_frame != None:
                 dpt = depth_frame

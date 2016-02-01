@@ -90,7 +90,16 @@ class HandGestureObjectClass(object):
 
                     d = 50
                     if depth_frame != None:
+
                         right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
+                        img1,contours1, hierarchy1 = cv2.findContours(right_hand_filtered,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+                        cnt=contours1[0]
+                        hull = cv2.convexHull(cnt)
+                        drawing = np.zeros(right_hand_filtered.shape,np.uint8)
+                        cv2.drawContours(drawing,[cnt],0,(0,255,0),2)
+                        cv2.drawContours(drawing,[hull],0,(0,0,255),2)
+                        cv2.imshow('contours1',drawing)
+
                         left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
 
                         neighbour = np.array(depth_frame)
