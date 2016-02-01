@@ -141,11 +141,15 @@ class HandGestureObjectClass(object):
                         # ret2,thresh2 = cv2.threshold(blur2,avg2,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
 
-                        ret1,thresh1 = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
-                        ret2,thresh2 = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
+                        # ret1,thresh1 = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
+                        # ret2,thresh2 = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY_INV)
 
                         # thresh = cv2.adaptiveThreshold(img_grey, 0, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
                         # print_frame = thresh1+thresh2
+
+                        contours1, hierarchy1 = cv2.findContours(right_hand_filtered_depth_frame,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+
                         print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
 
                     # it = np.nditer(print_frame, flags=['multi_index'],op_flags=['readwrite'])
@@ -168,11 +172,14 @@ class HandGestureObjectClass(object):
             if print_frame != None:
                 dpt = depth_frame
                 cv2.imshow('Hand Filtered',print_frame)
-                cv2.imshow('OG',tp)
+            
 
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+
+        cv2.imshow('OG',tp)
 
 
             # --- Limit to 60 frames per second
