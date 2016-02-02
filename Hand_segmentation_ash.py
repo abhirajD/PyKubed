@@ -99,11 +99,12 @@ class HandGestureObjectClass(object):
 
                     d = 50
                     if depth_frame != None:
-
                         right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
                         left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
+
                         neighbour = np.array(depth_frame)
                         neighbour *= 0
+<<<<<<< HEAD
                         print_frame = np.zeros(np.shape(depth_frame))
 
 
@@ -128,8 +129,13 @@ class HandGestureObjectClass(object):
 
                             left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered, left_hand),depth_frame)
                             ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+=======
+>>>>>>> origin/master
 
-                            print_frame += left_hand_filtered_depth_frame
+                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)
+                        left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered, left_hand)
+                       
+                        print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
 
                    
 
