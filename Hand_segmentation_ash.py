@@ -41,7 +41,16 @@ class HandGestureObjectClass(object):
         histogram[0 : 1] = [0, 0]
         max_hist = bins[histogram.index( max(histogram) )]
         return max_hist
-
+    
+    def max_area_contour(self, contours):
+        for i in range(len(contours)):
+            cnt=contours[i]
+            area = cv2.contourArea(cnt)
+            if(area>max_area):
+                max_area=area
+                ci=i
+        return contours[ci]
+    
     def run(self):
         print_frame=None
 
@@ -101,12 +110,12 @@ class HandGestureObjectClass(object):
 
                         if right_hand_filtered != None:
 
-                            img1,contours1, hierarchy1 = cv2.findContours(right_hand_filtered,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+                            img1,contours1, hierarchy1 = cv2.findContours(right_hand_filtered,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
                             cnt=contours1[0]
                             hull = cv2.convexHull(cnt)
                             drawing = np.zeros(right_hand_filtered.shape,np.uint8)
-                            drawing = cv2.drawContours(drawing,[cnt],0,(0,255,0),2)
-                            drawing = cv2.drawContours(drawing,[hull],0,(0,0,255),2)
+                            drawing = cv2.drawContours(drawing,[cnt],0,150,2)
+                            drawing = cv2.drawContours(drawing,[hull],0,200,2)
                             cv2.imshow('contours1',drawing)
 
                             right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
