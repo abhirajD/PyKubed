@@ -91,15 +91,26 @@ class HandGestureObjectClass(object):
                         right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
                         left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
 
+                        [a,b] = np.shape(right_hand_filtered)
+                        mask = np.zeros((a,b), dtype = np.uint8)
+                        # right_hand_filtered = cv2.floodFill(right_hand_filtered,mask,right_hand,255)
+                        image, contours, hierarchy = cv2.findContours(right_hand_filtered,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+                        cv2.drawContours(right_hand_filtered,contours,-1,200,-1)
+
                         neighbour = np.array(depth_frame)
                         neighbour *= 0
 
-                        right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
-                        left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered, left_hand),depth_frame)
-                        right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-                        left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)
+                        left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered, left_hand)
+                        
+                        
+                        # right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
+                        # left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered, left_hand),depth_frame)
+                        # ret,right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY)
+                        # ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY)
                         
                         print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
+                        
                         
 
             if print_frame != None:
