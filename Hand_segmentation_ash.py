@@ -43,6 +43,7 @@ class HandGestureObjectClass(object):
         return max_hist
     
     def max_area_contour(self, contours):
+        max_area = 0
         for i in range(len(contours)):
             cnt=contours[i]
             area = cv2.contourArea(cnt)
@@ -112,11 +113,11 @@ class HandGestureObjectClass(object):
                         if right_hand_filtered != None:
 
                             img1,contours1, hierarchy1 = cv2.findContours(right_hand_filtered,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                            cnt=contours1[0]
+                            cnt = self.max_area_contour(contours1)
                             hull = cv2.convexHull(cnt)
                             drawing = np.zeros(right_hand_filtered.shape,np.uint8)
-                            drawing = cv2.drawContours(drawing,[cnt],0,150,2)
-                            drawing = cv2.drawContours(drawing,[hull],0,200,2)
+                            drawing = cv2.drawContours(drawing,[cnt],0,150,1)
+                            drawing = cv2.drawContours(drawing,[hull],0,200,1)
                             cv2.imshow('contours1',drawing)
 
                             right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
@@ -139,9 +140,6 @@ class HandGestureObjectClass(object):
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
-
-        cv2.imshow('OG',tp)
 
 
             # --- Limit to 60 frames per second
