@@ -41,7 +41,17 @@ class HandGestureObjectClass(object):
         histogram[0 : 1] = [0, 0]
         max_hist = bins[histogram.index( max(histogram) )]
         return max_hist
-
+    
+    def max_area_contour(self, contours):
+        max_area = 0
+        for i in range(len(contours)):
+            cnt=contours[i]
+            area = cv2.contourArea(cnt)
+            if(area>max_area):
+                max_area=area
+                ci=i
+        return contours[ci]
+    
     def run(self):
         print_frame=None
 
@@ -96,12 +106,31 @@ class HandGestureObjectClass(object):
                         neighbour = np.array(depth_frame)
                         neighbour *= 0
 
-                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)
-                        left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered, left_hand)
-                       
-                        print_frame = right_hand_filtered_depth_frame+left_hand_filtered_depth_frame
+                        print_frame = np.zeros(np.shape(depth_frame))
 
-                   
+
+
+                        if right_hand_filtered != None:
+
+                            img1,contours1, hierarchy1 = cv2.findContours(right_hand_filtered,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+                            cnt = self.max_area_contour(contours1)
+                            hull = cv2.convexHull(cnt)
+                            drawing = np.zeros(right_hand_filtered.shape,np.uint8)
+                            drawing = cv2.drawContours(drawing,[cnt],0,150,1)
+                            drawing = cv2.drawContours(drawing,[hull],0,200,1)
+                            cv2.imshow('contours1',drawing)
+
+                            right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)
+                            
+                            ret,right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                            print_frame += right_hand_filtered_depth_frame
+                        
+                        if left_hand_filtered != None:
+                            
+
+                            left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered, left_hand),depth_frame)                            
+                            ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                            print_frame += left_hand_filtered_depth_frame
 
             if print_frame != None:
                 dpt = depth_frame
@@ -111,9 +140,6 @@ class HandGestureObjectClass(object):
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-
-
-        cv2.imshow('OG',tp)
 
 
             # --- Limit to 60 frames per second
