@@ -94,8 +94,10 @@ class HandGestureObjectClass(object):
                         [a,b] = np.shape(right_hand_filtered)
                         mask = np.zeros((a,b), dtype = np.uint8)
                         # right_hand_filtered = cv2.floodFill(right_hand_filtered,mask,right_hand,255)
+
                         image, contours, hierarchy = cv2.findContours(right_hand_filtered,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                        cv2.drawContours(right_hand_filtered,contours,-1,200,-1)
+                        right_hand_filtered = cv2.fillConvexPoly(right_hand_filtered,contours[0],150)
+                        # cv2.drawContours(right_hand_filtered,contours,-1,200,-1)
 
                         neighbour = np.array(depth_frame)
                         neighbour *= 0
