@@ -53,32 +53,48 @@ class HandGestureObjectClass(object):
                 ci=i
         return contours[ci]
     
+    def min_area_contour(self, contours):
+        min_area = 0
+        ci = 0
+        for i in range(len(contours)):
+            cnt=contours[i]
+            area = cv2.contourArea(cnt)
+            if(area<min_area):
+                min_area=area
+                ci=i
+        return contours[ci]
+
+    def min_depth(self, array):
+        return np.amin(array)
+
+
     def run(self):
         print_frame=None
 
         # -------- Main Program Loop -----------
         while (True):
             # --- Main event loop
-            print '0:in_main'
+           
             if self._kinect.has_new_depth_frame() or self._kinect.has_new_body_frame():
-                print '1:has_body'
+
                 depth_frame = self._kinect.get_last_depth_frame()
+                # print 'depth_frame'
 
                 depth_frame = np.array(depth_frame/16, dtype= np.uint8)
                 depth_frame = depth_frame.reshape(424,512)
-                cv2.imshow('depth_frame',depth_frame)
 
                 self._bodies = self._kinect.get_last_body_frame()
-
+                
+                i=0
                 if self._bodies is not None:
-                    print '2:bodies found'
-                    #first detected body taken
-                    body = self._bodies.bodies[0]   
-                    if not body.is_tracked: 
+                    #first detcted body taken
+                    body = self._bodies.bodies[i]   
+                    if not body.is_tracked:
+                        i=i+1 
                         continue 
-                    
+                    print 'has body'
                     joints = body.joints 
-                    print '3:body tracked'
+
                     # convert joint coordinates to color space 
                     joint_points = self._kinect.body_joints_to_depth_space(joints)
 
@@ -115,33 +131,53 @@ class HandGestureObjectClass(object):
 
                         if right_hand_filtered != None:
                             right = np.array(right_hand_filtered)
-                            cv2.imwrite('pointer.png',right_hand_filtered)
-                            img1,contours1, hierarchy1 = cv2.findContours(right,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                            cnt = self.max_area_contour(contours1)
-                            hull = cv2.convexHull(cnt)
-                            print hull
+                            # right = right_hand_filtered
+                            cv2.imwrite('openhand.png',right_hand_filtered)
+                            image,contours, hierarchy = cv2.findContours(right,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+                            max_cnt = self.max_area_contour(contours)
+                            min_cnt = self.min_area_contour(contours)
+                            hull = cv2.convexHull(max_cnt)
+                            # print hull
                             # defects = cv2.convexityDefects(cnt,hull)
                             # print defects.shape[0]
-                            drawing = np.zeros(right_hand_filtered.shape,np.uint8)
-                            drawing = cv2.drawContours(drawing,[cnt],0,150,1)
+                            drawing = np.zeros(right_hand_filtered.shape,np.uint16)
+                            drawing = cv2.drawContours(drawing,[max_cnt],0,150,1)
+                            # drawing = cv2.drawContours(drawing,[min_cnt],0,250,1)
+
                             drawing = cv2.drawContours(drawing,[hull],0,200,1)
                             cv2.imshow('contours1',drawing)
 
-                            img2 = cv2.imread('right_hand_filtered.png',0)
+                            # img1 = cv2.imread('openhand.png',0)
+                            # img2 = cv2.imread('closedhand.png',0)
                             # img3 = cv2.imread('pointer.png',0) 
-                            # ret, thresh2 = cv2.threshold(img2, 127, 255,0)
-                            im2,contours2,hierarchy2 = cv2.findContours(img2,2,1)
-                            cnt2 = self.max_area_contour(contours2)
+                            # # ret, thresh2 = cv2.threshold(img2, 127, 255,0)
 
-                            ret = cv2.matchShapes(cnt,cnt2,1,0.0)
+                            # im1,contours1,hierarchy1 = cv2.findContours(img1,2,1)
+                            # cnt1 = self.max_area_contour(contours1)
+                            # im2,contours2,hierarchy2 = cv2.findContours(img2,2,1)
+                            # cnt2 = self.max_area_contour(contours2)
+                            # im3,contours2,hierarchy2 = cv2.findContours(img3,2,1)
+                            # cnt3 = self.max_area_contour(contours3)
+
+                            # ret = np.zeros(3)
+                            # ret[1] = cv2.matchShapes(max_cnt,cnt1,1,0.0)
+                            # ret[2] = cv2.matchShapes(max_cnt,cnt2,1,0.0)
+                            # ret[3] = cv2.matchShapes(max_cnt,cnt3,1,0.0)
+
                             # print ret
-                            gesture = -1
-                            if ret <= 0.1:
-                                print 'Hand Closed'
-                                gesture = 1
-                            else:
-                                print 'Hand Open'
-                                gesture = 0
+                            # gesture = -1
+
+                            # # gesture = np.argmin(ret)
+                            #  if ret <= 0.1:
+                            #     print 'Hand Closed'
+                            #     gesture = 1
+                            # else:
+                            #     print 'Hand Open'
+                            #     gesture = 0
+
+
+                            
+                               
 
 
                             # k = cv2.isContourConvex(cnt)
@@ -165,16 +201,26 @@ class HandGestureObjectClass(object):
 
                         print_frame = np.array(print_frame, dtype = np.uint8)
                         print_frame = cv2.cvtColor(print_frame, cv2.COLOR_GRAY2RGB)
+                        depth_frame = np.array(depth_frame, dtype = np.uint8)
+                        depth_frame = cv2.cvtColor(depth_frame, cv2.COLOR_GRAY2RGB)
 
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        cv2.putText(print_frame, 'Gesture:',(50,320), font, 0.5, (150,150,150),1, cv2.LINE_AA)
-                        if gesture == 0:
-                            cv2.putText(print_frame, 'Hand Open',(50,350), font, 0.5, (200,0,0),1, cv2.LINE_AA)
-                        else:
-                            cv2.putText(print_frame, 'Hand Closed',(50,350), font, 0.5, (0,200,0),1, cv2.LINE_AA)
+                        # print_frame = cv2.bitwise_and(print_frame,depth_frame)
+                        # font = cv2.FONT_HERSHEY_SIMPLEX
+                        # cv2.putText(print_frame, 'Gesture:',(50,320), font, 0.5, (150,150,150),1, cv2.LINE_AA)
+                        # if gesture == 0:
+                        #     cv2.putText(print_frame, 'Hand Open',(50,350), font, 0.5, (200,0,0),1, cv2.LINE_AA)
+                        # elif gesture ==1:
+
+                        #     cv2.putText(print_frame, 'Hand Closed',(50,350), font, 0.5, (0,200,0),1, cv2.LINE_AA)
+                        # elif gesture == 2:
+                        #     cv2.putText(print_frame, 'pointer',(50,350), font, 0.5, (0,0,200),1, cv2.LINE_AA)
+
+
 
             if print_frame != None:
-                dpt = depth_frame
+                print str(np.shape(depth_frame)) +":" +str(np.shape(print_frame))
+                # print_frame=np.array(print_frame / 16, dtype = uint8)
+                
                 cv2.imshow('Hand Filtered',print_frame)
             
 

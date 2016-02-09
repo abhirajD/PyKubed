@@ -78,11 +78,13 @@ class HandGestureObjectClass(object):
                 depth_frame = depth_frame.reshape(424,512)                
                 self._bodies = self._kinect.get_last_body_frame()
 
+                i=0
                 # --- draw skeletons to _frame_surface
                 if self._bodies is not None:
                     #for i in range(0, self._kinect.max_body_count):
-                    body = self._bodies.bodies[0]
-                    if not body.is_tracked: 
+                    body = self._bodies.bodies[i]
+                    if not body.is_tracked:
+                        i = i+1 
                         continue 
                     
                     joints = body.joints 
