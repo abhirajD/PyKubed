@@ -2,6 +2,7 @@ from pykinect2 import PyKinectV2
 from pykinect2.PyKinectV2 import *
 from pykinect2 import PyKinectRuntime
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import scipy
 import numpy as np
 import cv2
@@ -22,7 +23,7 @@ class HandGestureObjectClass(object):
         
         temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint8)
         ret,temp = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-        # temp = cv2.cvtColor(temp,cv2.COLOR_GRAY2RGB)
+        # temp = cv2.Color(temp,cv2.COLOR_GRAY2RGB)
         # mask = np.zeros(np.shape(temp), dtype = np.uint8)
         # mask[radius,radius] = 1
         # bgdModel = np.zeros((1,65),np.float64)
@@ -56,8 +57,8 @@ class HandGestureObjectClass(object):
         while (True):
             # --- Main event loop
            
-            if self._kinect.has_new_depth_frame() or self._kinect.has_new_body_frame():
-
+            if self._kinect.has_new_body_frame():
+                print 'has body'
                 depth_frame = self._kinect.get_last_depth_frame()
 
                 depth_frame = np.array(depth_frame/16, dtype= np.uint8)
@@ -121,6 +122,10 @@ class HandGestureObjectClass(object):
                 dpt = depth_frame
                 cv2.imshow('Hand Filtered',print_frame)
                 cv2.imshow('OG',depth_frame)
+                # fig = plt.figure()
+                # ax = fig.add_subplot(111, projection = '3d')
+                # ax.plot([1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5])
+                # plt.show()
             
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
