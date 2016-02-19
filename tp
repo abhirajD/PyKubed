@@ -106,9 +106,13 @@ class HandGestureObjectClass(object):
 
                 #print type(c)
 
-                radius_right =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristRight].x)-int(joint_points[PyKinectV2.JointType_HandTipRight].x))**2+(int(joint_points[PyKinectV2.JointType_WristRight].y)-int(joint_points[PyKinectV2.JointType_HandTipRight].y))**2))+1
-                radius_left =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
+                # radius_right =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristRight].x)-int(joint_points[PyKinectV2.JointType_HandTipRight].x))**2+(int(joint_points[PyKinectV2.JointType_WristRight].y)-int(joint_points[PyKinectV2.JointType_HandTipRight].y))**2))+1
+                # radius_left =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
                 # print d
+
+                radius_right = 50
+                radius_left = 50
+
                 if depth_frame != None:
                     right_hand_filtered = self.neighbourhood(depth_frame,radius_right,right_hand)
                     left_hand_filtered = self.neighbourhood(depth_frame,radius_left,left_hand)
@@ -125,6 +129,12 @@ class HandGestureObjectClass(object):
                         # cv2.imwrite('pointer.png',right_hand_filtered)
                         img1,contours1, hierarchy1 = cv2.findContours(right,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
                         cnt = self.max_area_contour(contours1)
+                        x,y,w,h = cv2.boundingRect(cnt)
+
+                        right = np.array(self.neighbourhood(depth_frame,max(w,h),right_hand))
+                        img1,contours1, hierarchy1 = cv2.findContours(right,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+                        cnt = self.max_area_contour(contours1)
+
                         hull = cv2.convexHull(cnt)
                         # print hull
                         # defects = cv2.convexityDefects(cnt,hull)
