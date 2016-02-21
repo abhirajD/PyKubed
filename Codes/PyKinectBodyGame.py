@@ -6,6 +6,7 @@ import ctypes
 import _ctypes
 import pygame
 import sys
+import cv2
 
 if sys.hexversion >= 0x03000000:
     import _thread as thread
@@ -135,6 +136,8 @@ class BodyGameRuntime(object):
             if self._kinect.has_new_color_frame():
                 frame = self._kinect.get_last_color_frame()
                 self.draw_color_frame(frame, self._frame_surface)
+                frame = frame.reshape(1080,1920,4)
+                cv2.imshow('raa',frame)
                 frame = None
 
             # --- Cool! We have a body frame, so can get skeletons
