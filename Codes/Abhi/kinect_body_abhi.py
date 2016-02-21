@@ -95,17 +95,20 @@ class HandGestureObjectClass(object):
             #Get depth frames
             if self._kinect.has_new_depth_frame():
                 frame = self._kinect.get_last_depth_frame()
-                frame = np.array(frame/16, dtype= np.uint8)
                 frame = frame.reshape(424,512)
-                depth_frame = np.array(frame)
-                cv2.imshow('raw',depth_frame)
+                frame_8 = np.array(frame/16, dtype= np.uint8)
+                depth_frame_16 = np.array(frame)
+                depth_frame *= 8
+                depth_frame_8 =np.array(frame_8)
+                cv2.imshow('raw',depth_frame_8)
+                cv2.imshow('raw16',depth_frame_16)
                 frame = None
+                frame_8 = None
             
             #Check if body frames are ready and take the latest one
             if self._kinect.has_new_body_frame():
                 self._bodies = self._kinect.get_last_body_frame()
-            
-            
+ 
 
             if self._bodies is not None:                
                 for i in range(0, self._kinect.max_body_count):
@@ -127,23 +130,23 @@ class HandGestureObjectClass(object):
 
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
 
-                right_hand_depth = depth_frame[right_hand[0],right_hand[1]]
-                left_hand_depth = depth_frame[left_hand[0],left_hand[1]]
+                right_hand_depth = depth_frame_16[right_hand[0],right_hand[1]]
+                left_hand_depth = depth_frame_16[left_hand[0],left_hand[1]]
                 print 'ld:' + str(left_hand_depth)+'\trd:' + str(right_hand_depth)
                 
-                neighbour = np.array(depth_frame)
+                neighbour = np.array(depth_frame_8)
                 neighbour *= 0
 
                 d = 40
-                print_frame = np.zeros(np.shape(depth_frame))
-                if depth_frame != None: 
-                    right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
-                    left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
+                print_frame = np.zeros(np.shape(depth_frame_16))
+                if depth_frame_16 != None: 
+                    right_hand_filtered = self.neighbourhood(depth_frame_8,d,right_hand)
+                    left_hand_filtered = self.neighbourhood(depth_frame_8,d,left_hand)
 
-                    right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame)                            
+                    right_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, right_hand_filtered,right_hand),depth_frame_8)                            
                     ret,right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-                    left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered,left_hand),depth_frame)                            
+                    left_hand_filtered_depth_frame = cv2.bitwise_and(self.merge(neighbour, left_hand_filtered,left_hand),depth_frame_8)                            
                     ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
                     print_frame += left_hand_filtered_depth_frame
