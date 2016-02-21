@@ -98,9 +98,9 @@ class HandGestureObjectClass(object):
                 frame = frame.reshape(424,512)
                 frame_8 = np.array(frame/16, dtype= np.uint8)
                 depth_frame_16 = np.array(frame)
-                depth_frame *= 8
+                depth_frame_16 *= 8
                 depth_frame_8 =np.array(frame_8)
-                cv2.imshow('raw',depth_frame_8)
+                # cv2.imshow('raw',depth_frame_8)
                 cv2.imshow('raw16',depth_frame_16)
                 frame = None
                 frame_8 = None
@@ -130,15 +130,23 @@ class HandGestureObjectClass(object):
 
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
 
-                right_hand_depth = depth_frame_16[right_hand[0],right_hand[1]]
-                left_hand_depth = depth_frame_16[left_hand[0],left_hand[1]]
-                print 'ld:' + str(left_hand_depth)+'\trd:' + str(right_hand_depth)
+                right_hand_depth = np.array(depth_frame_16[right_hand[0]-3:right_hand[0]+3,right_hand[1]-3:right_hand[1]+3])
+                left_hand_depth = np.array(depth_frame_16[left_hand[0]-3:left_hand[0]+3,left_hand[1]-3:left_hand[1]+3])
+
+                right_hand_depth = np.mean(right_hand_depth)
+                left_hand_depth = np.mean(left_hand_depth)
+                
+                print 'ld:' + str(int(left_hand_depth))+'\trd:' + str(int(right_hand_depth))
                 
                 neighbour = np.array(depth_frame_8)
                 neighbour *= 0
 
                 d = 40
                 print_frame = np.zeros(np.shape(depth_frame_16))
+
+                circle = np.array(depth_frame_8)
+                circle = cv2.circle(circle,(right_hand[0],right_hand[1]),3,255,3)
+                cv2.imshow('cc',circle)
                 if depth_frame_16 != None: 
                     right_hand_filtered = self.neighbourhood(depth_frame_8,d,right_hand)
                     left_hand_filtered = self.neighbourhood(depth_frame_8,d,left_hand)
