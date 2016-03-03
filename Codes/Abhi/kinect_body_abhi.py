@@ -19,10 +19,10 @@ class HandGestureObjectClass(object):
     
     def get_hand_coordinates(self, joint_points):
 
-        right_x=int(joint_points[PyKinectV2.JointType_WristRight].x)
-        right_y=int(joint_points[PyKinectV2.JointType_WristRight].y)
-        left_x=int(joint_points[PyKinectV2.JointType_WristLeft].x)
-        left_y=int(joint_points[PyKinectV2.JointType_WristLeft].y)
+        right_x=int(joint_points[PyKinectV2.JointType_HandRight].x)
+        right_y=int(joint_points[PyKinectV2.JointType_HandRight].y)
+        left_x=int(joint_points[PyKinectV2.JointType_HandLeft].x)
+        left_y=int(joint_points[PyKinectV2.JointType_HandLeft].y)
        
         right_x = right_x if right_x < 424 else 423
         right_y = right_y if right_y < 512 else 511
@@ -33,10 +33,26 @@ class HandGestureObjectClass(object):
         left_hand = [left_x,left_y]
         return [right_hand,left_hand]
         
+    def get_wrist_coordinates(self, joint_points):
+
+        right_x=int(joint_points[PyKinectV2.JointType_WristRight].x)
+        right_y=int(joint_points[PyKinectV2.JointType_WristRight].y)
+        left_x=int(joint_points[PyKinectV2.JointType_WristLeft].x)
+        left_y=int(joint_points[PyKinectV2.JointType_WristLeft].y)
+       
+        right_x = right_x if right_x < 424 else 423
+        right_y = right_y if right_y < 512 else 511
+        left_x = left_x if left_x < 424 else 423
+        left_y = left_y if left_y < 512 else 511
+
+        right_wrist = [right_x,right_y]
+        left_wrist = [left_x,left_y]
+        return [right_wrist,left_wrist]
+
     def neighbourhood(self, array, radius, seed):
         neighbour = np.array(array)
         neighbour *= 0
-        temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint8)
+        temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint16)
         # cv2.imshow('hand',temp)
         # ret,temp = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         return temp
@@ -91,20 +107,21 @@ class HandGestureObjectClass(object):
         return [radius_right,radius_left]
 
     def run(self):
-        print_frame=None
+        
         #Initialize variables
+        print_frame = None
         depth_frame = np.zeros((424,512), dtype = np.uint16)
         initial = np.zeros((424,512), dtype = np.uint16)
         
         while (True):
-            #Inits for every cycle
-            cmd('cls')      #Clears the screen
+            #Inits per cycle
+            cmd('cls')                  #Clears the screen
             body_present = 0
 
             #Get depth frames
             if self._kinect.has_new_depth_frame():
                 frame = self._kinect.get_last_depth_frame()
-                frame = np.array(frame/16, dtype= np.uint8)
+                frame = np.array(frame*16, dtype= np.uint16)
                 frame = frame.reshape(424,512)
                 depth_frame = np.array(frame)
                 cv2.imshow('raw',depth_frame)
@@ -113,9 +130,8 @@ class HandGestureObjectClass(object):
             #Check if body frames are ready and take the latest one
             if self._kinect.has_new_body_frame():
                 self._bodies = self._kinect.get_last_body_frame()
-            
-            
 
+            #Extract Body
             if self._bodies is not None:                
                 for i in range(0, self._kinect.max_body_count):
                     body = self._bodies.bodies[i]
@@ -135,26 +151,31 @@ class HandGestureObjectClass(object):
                 joint_points = self._kinect.body_joints_to_depth_space(joints)
 
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
+                [right_wrist, left_wrist] = self.get_wrist_coordinates(joint_points)
                 
                 d = 40
+
                 print_frame = np.zeros(np.shape(depth_frame))
+                
                 if depth_frame != None: 
                     neighbour = np.array(depth_frame)
                     neighbour *= 0
+
                     right_hand_filtered = self.neighbourhood(depth_frame,d,right_hand)
                     left_hand_filtered = self.neighbourhood(depth_frame,d,left_hand)
                     
                     cv2.imshow('depth',depth_frame)
 
                     if right_hand_filtered != None:
-                        right_hand_depth = right_hand_filtered[d,d] + 3
+                        right_hand_depth = right_hand_filtered[d,d] + 300
                         right_hand_filtered[right_hand_filtered > right_hand_depth] = 0
+
                         
-                        right_hand_filtered_depth_frame = cv2.bitwise_and(depth_frame,self.merge(neighbour, right_hand_filtered,right_hand))                      
+                        right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)                     
                         neighbour = right_hand_filtered_depth_frame
 
                     if left_hand_filtered != None:
-                        left_hand_depth = left_hand_filtered[d,d] + 3
+                        left_hand_depth = left_hand_filtered[d,d] + 300
                         left_hand_filtered[left_hand_filtered > left_hand_depth] = 0
                         
                         left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered,left_hand)                         
