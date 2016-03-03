@@ -1,0 +1,4 @@
+Tried Algorithms:
+:Filtering
+	-GrabCut: Failed (slow and inaccurate)
+	-Watershed: In Progress (Idiotic docs, seems buggy)

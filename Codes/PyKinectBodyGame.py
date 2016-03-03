@@ -1,7 +1,7 @@
 from pykinect2 import PyKinectV2
 from pykinect2.PyKinectV2 import *
 from pykinect2 import PyKinectRuntime
-
+import numpy as np
 import ctypes
 import _ctypes
 import pygame
@@ -33,7 +33,7 @@ class BodyGameRuntime(object):
         # Set the width and height of the screen [width, height]
         self._infoObject = pygame.display.Info()
         self._screen = pygame.display.set_mode((self._infoObject.current_w >> 1, self._infoObject.current_h >> 1), 
-                                               pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE, 32)
+                                               pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE, 8   )
 
         pygame.display.set_caption("Kinect for Windows v2 Body Game")
 
@@ -44,10 +44,10 @@ class BodyGameRuntime(object):
         self._clock = pygame.time.Clock()
 
         # Kinect runtime object, we want only color and body frames 
-        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
+        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Body)
 
-        # back buffer surface for getting Kinect color frames, 32bit color, width and height equal to the Kinect color frame size
-        self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
+        # back buffer surface for getting Kinect color frames, 8   bit color, width and height equal to the Kinect color frame size
+        self._frame_surface = pygame.Surface((self._kinect.depth_frame_desc.Width, self._kinect.depth_frame_desc.Height), 0, 8   )
 
         # here we will store skeleton data 
         self._bodies = None
@@ -110,7 +110,7 @@ class BodyGameRuntime(object):
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleLeft, PyKinectV2.JointType_FootLeft);
 
 
-    def draw_color_frame(self, frame, target_surface):
+    def draw_depth_frame(self, frame, target_surface):
         target_surface.lock()
         address = self._kinect.surface_as_array(target_surface.get_buffer())
         ctypes.memmove(address, frame.ctypes.data, frame.size)
@@ -127,17 +127,18 @@ class BodyGameRuntime(object):
 
                 elif event.type == pygame.VIDEORESIZE: # window resized
                     self._screen = pygame.display.set_mode(event.dict['size'], 
-                                               pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE, 32)
+                                               pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE, 8   )
                     
             # --- Game logic should go here
 
             # --- Getting frames and drawing  
             # --- Woohoo! We've got a color frame! Let's fill out back buffer surface with frame's data 
-            if self._kinect.has_new_color_frame():
-                frame = self._kinect.get_last_color_frame()
-                self.draw_color_frame(frame, self._frame_surface)
-                frame = frame.reshape(1080,1920,4)
-                cv2.imshow('raa',frame)
+            if self._kinect.has_new_depth_frame():
+                frame = self._kinect.get_last_depth_frame()
+                frame = np.array(frame, dtype= np.uint8)
+                frame *= 1  
+                # new = cv2.cvtColor(frame,cv2.COLOR_GRAY2RGB)
+                self.draw_depth_frame(frame, self._frame_surface)
                 frame = None
 
             # --- Cool! We have a body frame, so can get skeletons
@@ -153,7 +154,7 @@ class BodyGameRuntime(object):
                     
                     joints = body.joints 
                     # convert joint coordinates to color space 
-                    joint_points = self._kinect.body_joints_to_color_space(joints)
+                    joint_points = self._kinect.body_joints_to_depth_space(joints)
                     self.draw_body(joints, joint_points, SKELETON_COLORS[i])
 
             # --- copy back buffer surface pixels to the screen, resize it if needed and keep aspect ratio
