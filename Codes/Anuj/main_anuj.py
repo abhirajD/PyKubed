@@ -64,7 +64,7 @@ class HandGestureObjectClass(object):
             if(area>max_area):
                 max_area=area
                 ci=i
-        return contours[ci]
+        return ci
     
     def min_area_contour(self, contours):
         min_area = 0
@@ -87,7 +87,7 @@ class HandGestureObjectClass(object):
         for i in range(0,424):
             for j in range(0,b):
                 q=depth_frame1[i,j]
-                topview[q,j]=65536
+                topview[q,j]=255
         return topview
 
     def run(self):
@@ -109,15 +109,12 @@ class HandGestureObjectClass(object):
                 depth_frame_16 = np.array(frame)
                 depth_frame_16 *= 8
                 depth_frame_8 =np.array(frame_8)
-                #cv2.imshow('raw',depth_frame_8)
-                #cv2.imshow('raw16',depth_frame_16)
                 frame = None
                 frame_8 = None
             
             #Check if body frames are ready and take the latest one
             if self._kinect.has_new_body_frame():
                 self._bodies = self._kinect.get_last_body_frame()
- 
 
             if self._bodies is not None:                
                 for i in range(0, self._kinect.max_body_count):
@@ -130,51 +127,56 @@ class HandGestureObjectClass(object):
                         print '::Body tracked'
                         body_present = 1
                         break
-
             if body_present == 1:
                 joints = body.joints 
                 print '::Body tracked'
                 # convert joint coordinates to depth space 
                 joint_points = self._kinect.body_joints_to_depth_space(joints)
-
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
                 #print depth_frame_8[right_hand]
                 right_hand_depth = np.array(depth_frame_16[right_hand[0]-3:right_hand[0]+3,right_hand[1]-3:right_hand[1]+3])
                 left_hand_depth = np.array(depth_frame_16[left_hand[0]-3:left_hand[0]+3,left_hand[1]-3:left_hand[1]+3])
                 right_hand_depth = np.mean(right_hand_depth)
                 left_hand_depth = np.mean(left_hand_depth)
-                
-                print 'ld:' + str(int(left_hand_depth))+'\trd:' + str(int(right_hand_depth))
+                #print 'ld:' + str(int(left_hand_depth))+'\trd:' + str(int(right_hand_depth))
                 neighbour = np.array(depth_frame_8)
                 neighbour *= 0
                 d = 1.5*40
                 print_frame = np.array(np.zeros(np.shape(depth_frame_16)),dtype=np.uint16)
-                #circle = np.array(depth_frame_8)
-                #circle = cv2.circle(circle,(right_hand[0],right_hand[1]),3,255,3)
-                #cv2.imshow('cc',circle)
                 if depth_frame_16 != None: 
                     right_hand_filtered = self.neighbourhood(depth_frame_8,d,right_hand)
                     left_hand_filtered = self.neighbourhood(depth_frame_8,d,left_hand)
                     if right_hand_filtered!=None:
                         right_hand_filtered_depth_frame = np.where(self.merge(neighbour, right_hand_filtered,right_hand) != 0,depth_frame_16,0)
+                        print_frame += right_hand_filtered_depth_frame
+                        #print str(int(max_rd_depth))+'fhiufg'+str(int(min_rd_depth))
                         neighbour *= 0                            
-                        #ret,right_hand_filtered_depth_frame = cv2.threshold(right_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     if left_hand_filtered!=None:
                         left_hand_filtered_depth_frame = np.where(self.merge(neighbour, left_hand_filtered,left_hand) != 0,depth_frame_16,0)                            
-                        #ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                         print_frame += left_hand_filtered_depth_frame
-                        print_frame += right_hand_filtered_depth_frame
-                        #print str(depth_frame_16.shape)+':'+str(print_frame.shape)
-                            #print_frame=cv2.bitwise_and(depth_frame_16,print_frame)
                     cv2.imshow('final',print_frame)
                     topview=self.plot_topview(print_frame/66)
+                    topview1=np.array(topview,dtype=np.uint8)
                     cv2.imshow('topview',topview)
+                    img1,contours1, hierarchy1 = cv2.findContours(topview1,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+                    if len(contours1)!=0:
+                        cnt=contours1[self.max_area_contour(contours1)]
+                        hull = cv2.convexHull(cnt,returnPoints = False)
+                        defects = cv2.convexityDefects(cnt,hull)
+                        drawing = np.zeros(topview.shape,np.uint8)
+                        drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
+                        for i in range(defects.shape[0]):
+                            s,e,f,d = defects[i,0]
+                            start = tuple(cnt[s][0])
+                            end = tuple(cnt[e][0])
+                            far = tuple(cnt[f][0])
+                            cv2.line(drawing,start,end,[0,255,0],2)
+                            cv2.circle(drawing,far,5,[0,0,255],-1)
+                        drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
+                        cv2.imshow('contours1',drawing)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
-
-
-
 HandGestureObject = HandGestureObjectClass();
 HandGestureObject.run();
