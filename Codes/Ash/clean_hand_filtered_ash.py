@@ -59,7 +59,8 @@ class HandGestureObjectClass(object):
 
     def merge(self, array_big, array_small, seed ):
         [a,b] = np.shape(array_small)
-        array_big[seed[1]-b/2:seed[1]+b/2, seed[0]-a/2:seed[0]+a/2] = array_small
+        if array_big != None:
+            array_big[seed[1]-b/2:seed[1]+b/2, seed[0]-a/2:seed[0]+a/2] = array_small
         return array_big
     
     def max_hist_depth(self, frame):    
@@ -82,8 +83,8 @@ class HandGestureObjectClass(object):
             if(area>max_area):
                 max_area=area
                 ci=i
-        return ci
-    
+        return contours[ci]
+            
     def min_area_contour(self, contours):
         min_area = 0
         ci = 0
@@ -196,21 +197,27 @@ class HandGestureObjectClass(object):
                     ret, right = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
                     img1,contours1, hierarchy1 = cv2.findContours(right,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                    cnt = contours1[self.max_area_contour(contours1)]
+                    cnt = self.max_area_contour(contours1)
                     hull = cv2.convexHull(cnt,returnPoints = False)
                     defects = cv2.convexityDefects(cnt,hull)
                     drawing = np.zeros(right_hand_filtered.shape,np.uint8)
                     drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
+                    print defects.shape[0]
                     for i in range(defects.shape[0]):
                         s,e,f,d = defects[i,0]
                         start = tuple(cnt[s][0])
                         end = tuple(cnt[e][0])
                         far = tuple(cnt[f][0])
-                        cv2.line(drawing,start,end,[0,255,0],2)
+                        # cv2.line(drawing,start,end,[0,255,0],2)
                         cv2.circle(drawing,far,5,[0,0,255],-1)
-                        cv2.circle(drawing,start,5,[0,0,255],-1)
-                        cv2.circle(drawing,end,5,[0,0,255],-1)
+                        # cv2.circle(drawing,start,5,[255,0,255],-1)
+                        cv2.circle(drawing,end,5,[0,255,255],-1)
 
+                    rect = cv2.minAreaRect(cnt)
+                    print rect
+                    box = cv2.boxPoints(rect)
+                    box = np.int0(box)
+                    # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
                     drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
                     cv2.imshow('contours1',drawing)
 
