@@ -104,7 +104,7 @@ class HandGestureObjectClass(object):
 
         radius_left =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
         radius_right =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristRight].x)-int(joint_points[PyKinectV2.JointType_HandTipRight].x))**2+(int(joint_points[PyKinectV2.JointType_WristRight].y)-int(joint_points[PyKinectV2.JointType_HandTipRight].y))**2))+1
-        print radius_right
+        # print radiuqs_right
 
         return max(radius_right,radius_left)
 
@@ -114,7 +114,8 @@ class HandGestureObjectClass(object):
         print_frame = None
         depth_frame = np.zeros((424,512), dtype = np.uint16)
         initial = np.zeros((424,512), dtype = np.uint16)
-        
+        file = open('feature','w')
+
         while (True):
             #Inits per cycle
             cmd('cls')                  #Clears the screen
@@ -155,8 +156,8 @@ class HandGestureObjectClass(object):
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
                 [right_wrist, left_wrist] = self.get_wrist_coordinates(joint_points)
                 
-                d = 40
-                # d = self.get_radius(joint_points)
+                # d = 40
+                d = self.get_radius(joint_points)
 
                 print_frame = np.zeros(np.shape(depth_frame))
                 
@@ -191,6 +192,7 @@ class HandGestureObjectClass(object):
                     # hand_filtered += right_hand_filtered_depth_frame
 
                     cv2.imshow('final',hand_filtered)
+                    cv2.circle(hand_filtered_8,tuple(right_wrist),5,[150,50,255],-1)
                     cv2.imshow('8-bit', hand_filtered_8)
 
 
@@ -203,38 +205,61 @@ class HandGestureObjectClass(object):
                     right[skel > 1] = 255
                     cv2.imshow('skeleton',right)
 
-                    med_axis = medial_axis(right11).astype(np.uint8)
-                    med_axis = med_axis*255
-                    cv2.imshow('med_axis',med_axis)
-                    # img1,contours1, hierarchy1 = cv2.findContours(right,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                    # cnt = self.max_area_contour(contours1)
-                    # hull = cv2.convexHull(cnt,returnPoints = False)
-                    # defects = cv2.convexityDefects(cnt,hull)
-                    # drawing = np.zeros(right_hand_filtered.shape,np.uint8)
-                    # drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
-                    # print defects
-                    # for i in range(defects.shape[0]):
-                    #     s,e,f,d = defects[i,0]
-                    #     start = tuple(cnt[s][0])
-                    #     end = tuple(cnt[e][0])
-                    #     far = tuple(cnt[f][0])
-                    #     # cv2.line(drawing,start,end,[0,255,0],2)
-                    #     cv2.circle(drawing,far,5,[0,0,255],-1)
-                    #     cv2.circle(drawing,start,5,[255,0,255],-1)
-                    #     # cv2.circle(drawing,end,5,[0,255,255],-1)
+                    img1,contours1, hierarchy1 = cv2.findContours(right1,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+                    cnt = self.max_area_contour(contours1)
+                    hull = cv2.convexHull(cnt,returnPoints = False)
+                    defects = cv2.convexityDefects(cnt,hull)
+                    drawing = np.zeros(right_hand_filtered.shape,np.uint8)
+                    drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
+                    # print defects.shape[0]
+                    fingers = 0
+                    # s,e,f,d = defects[0,0]
+                    # start = tuple(cnt[s][0])
+                    # end = tuple(cnt[e][0])
+                    # far = tuple(cnt[f][0])
+                    # cv2.circle(drawing,start,5,[255,0,255],-1)
+                    # cv2.circle(drawing,far,5,[0,0,255],-1)
+                    # cv2.line(drawing,start,end,[0,255,0],2)
+                    # cv2.circle(drawing,end,5,[0,255,255],-1)
+                    avg = 0
+                    for i in range(defects.shape[0]):
+                        s,e,f,d=defects[i,0]
+                        avg +=d
+                    avg /= defects.shape[0]
+                    # print avg
+                    for i in range(defects.shape[0]):
+                        s,e,f,d = defects[i,0]
+                        start = tuple(cnt[s][0])
+                        end = tuple(cnt[e][0])
+                        far = tuple(cnt[f][0])
+                        # d = tuple(cnt[d][0])
+                        # print  str(i) + ":" +str(d)
+                        if d >= avg/2:
+                            fingers = fingers+1
+                            cv2.circle(drawing,start,5,[255,0,255],-1)
+                            cv2.circle(drawing,far,5,[0,0,255],-1)
+                            cv2.line(drawing,start,end,[0,255,0],2)
+                            # cv2.circle(drawing,end,5,[0,255,255],-1)
 
                     # rect = cv2.minAreaRect(cnt)
                     # print rect
                     # box = cv2.boxPoints(rect)
                     # box = np.int0(box)
-                    # # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
-                    # drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
-                    # cv2.imshow('contours1',drawing)
+                    # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
+                    print fingers
+                    
+                    file.write("::"+str(fingers)+"\n")
+                    
+                    # print right_wrist
+                    drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
+
+                    cv2.imshow('contours1',drawing)
 
             
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+                file.close()
 
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
