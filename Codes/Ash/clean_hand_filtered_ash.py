@@ -100,6 +100,12 @@ class HandGestureObjectClass(object):
     def min_depth(self, array):
         return np.amin(array)
 
+    def velocity_vector(self,depth_frame,pervious_hand,hand):
+        dx = hand[0] - pervious_hand[0]
+        dy = hand[1] - pervious_hand[1]
+        dd = depth_frame[hand[0],hand[1]]-depth_frame[pervious_hand[0],pervious_hand[1]]
+        return [dx,dy,dd]
+
     def get_radius(self, joint_points):
 
         radius_left =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
@@ -115,6 +121,9 @@ class HandGestureObjectClass(object):
         depth_frame = np.zeros((424,512), dtype = np.uint16)
         initial = np.zeros((424,512), dtype = np.uint16)
         file = open('feature','w')
+        avg = 0
+        pervious_right_hand = [0,0]
+        right_hand=None
 
         while (True):
             #Inits per cycle
@@ -178,6 +187,8 @@ class HandGestureObjectClass(object):
                         
                         right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)                     
                         neighbour = right_hand_filtered_depth_frame
+                        dx,dy,dd = self.velocity_vector(depth_frame,right_hand,pervious_right_hand)
+                        print str(dx)+":"+str(dy)+":"+str(dd)+'\n'
 
                     if left_hand_filtered != None:
                         left_hand_depth = left_hand_filtered[d,d] 
@@ -200,11 +211,6 @@ class HandGestureObjectClass(object):
                     ret , right1  = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     ret, right11 = cv2.threshold(right,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-                    skel = skeletonize(right11).astype(np.uint8)
-                    skel = skel*255
-                    right[skel > 1] = 255
-                    cv2.imshow('skeleton',right)
-
                     img1,contours1, hierarchy1 = cv2.findContours(right1,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
                     cnt = self.max_area_contour(contours1)
                     hull = cv2.convexHull(cnt,returnPoints = False)
@@ -213,20 +219,8 @@ class HandGestureObjectClass(object):
                     drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
                     # print defects.shape[0]
                     fingers = 0
-                    # s,e,f,d = defects[0,0]
-                    # start = tuple(cnt[s][0])
-                    # end = tuple(cnt[e][0])
-                    # far = tuple(cnt[f][0])
-                    # cv2.circle(drawing,start,5,[255,0,255],-1)
-                    # cv2.circle(drawing,far,5,[0,0,255],-1)
-                    # cv2.line(drawing,start,end,[0,255,0],2)
-                    # cv2.circle(drawing,end,5,[0,255,255],-1)
-                    avg = 0
-                    for i in range(defects.shape[0]):
-                        s,e,f,d=defects[i,0]
-                        avg +=d
-                    avg /= defects.shape[0]
-                    # print avg
+                    
+                    avg1=0
                     for i in range(defects.shape[0]):
                         s,e,f,d = defects[i,0]
                         start = tuple(cnt[s][0])
@@ -240,13 +234,16 @@ class HandGestureObjectClass(object):
                             cv2.circle(drawing,far,5,[0,0,255],-1)
                             cv2.line(drawing,start,end,[0,255,0],2)
                             # cv2.circle(drawing,end,5,[0,255,255],-1)
-
+                        avg1 +=d
+                        
+                    avg = avg1 / defects.shape[0]
+                    # print avg
                     # rect = cv2.minAreaRect(cnt)
                     # print rect
                     # box = cv2.boxPoints(rect)
                     # box = np.int0(box)
                     # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
-                    print fingers
+                    # print fingers
                     
                     file.write("::"+str(fingers)+"\n")
                     
@@ -254,8 +251,9 @@ class HandGestureObjectClass(object):
                     drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
 
                     cv2.imshow('contours1',drawing)
+            if right_hand != None:
+                pervious_right_hand = right_hand
 
-            
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
