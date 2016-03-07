@@ -4,6 +4,7 @@ from pykinect2 import PyKinectRuntime
 from matplotlib import pyplot as plt
 from scipy import ndimage
 from skimage.morphology import skeletonize,medial_axis
+from sknn.mlp import Classifier, Layer
 import numpy as np
 import cv2
 from os import system as cmd
@@ -115,7 +116,45 @@ class HandGestureObjectClass(object):
         print_frame = None
         depth_frame = np.zeros((424,512), dtype = np.uint16)
         initial = np.zeros((424,512), dtype = np.uint16)
-        file = open('feature','w')
+        # file = open('feature','w')
+
+#ANNNNNN
+        opt = []
+
+        f = open("feature_open_hand", "r+")
+        ipt_open = f.read()
+        f.close()
+        ipt_open  = ipt_open.split("\n")
+        for i in range(0,len(ipt_open)-1):
+            ipt_open[i] = ipt_open[i].strip("[]").split(",")
+            # print ipt_open
+            ipt_open[i][0] = int(ipt_open[i][0])
+            ipt_open[i][1] = int(ipt_open[i][1])
+            opt.append(1)
+
+        f = open("feature_closed_hand", "r+")
+        ipt_closed = f.read()
+        f.close()
+        ipt_closed  = ipt_closed.split("\n")
+        for i in range(0,len(ipt_closed)-1):
+            ipt_closed[i] = ipt_closed[i].strip("[]").split(",")
+            ipt_closed[i][0] = int(ipt_closed[i][0])
+            ipt_closed[i][1] = int(ipt_closed[i][1])
+            opt.append(0)
+
+        ipt = ipt_open[:-1]+ipt_closed[:-1]
+        ipt = np.asarray(ipt)
+        opt = np.asarray(opt)
+        print ":"+str(len(ipt))
+        print len(opt)
+        nn = Classifier(
+            layers=[
+                Layer("Softmax", units=5),
+                Layer("Softmax",units=2),
+                Layer("Softmax")],
+            learning_rate=0.05,
+            n_iter=10)
+        nn.fit(ipt,opt)
 
         while (True):
             #Inits per cycle
@@ -267,9 +306,10 @@ class HandGestureObjectClass(object):
                     # box = np.int0(box)
                     # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
                     print fingers
-                    features = [fingers,match]
-                    file.write(str(features)+"\n")                    
+                    features = (fingers,match)
+                    # file.write(str(features)+"\n")                    
                     # print right_wrist
+                    a = np.asarray(features)
                     drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
                     cv2.imshow('right_hand_contours',drawing)
 # AREA DETECTION

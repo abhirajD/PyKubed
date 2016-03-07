@@ -32,13 +32,15 @@ print ":"+str(len(ipt))
 print len(opt)
 nn = Classifier(
     layers=[
-        Layer("Softmax", units=2),
+        Layer("Softmax", units=5),
         Layer("Softmax",units=2),
         Layer("Softmax")],
-    learning_rate=0.001,
-    n_iter=25)
+    learning_rate=0.05,
+    n_iter=10)
 nn.fit(ipt,opt)
 
-op = nn.predict([3,20])
+a = np.asarray([[6,300]])
+# a =a.reshape(2,-1)
+op = nn.predict(a)
 
 print op
