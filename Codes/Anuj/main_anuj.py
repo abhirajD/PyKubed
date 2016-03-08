@@ -127,7 +127,27 @@ class HandGestureObjectClass(object):
        # print area
         drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
         return drawing
+    def plot_topview(self,depth_frame1):
+        [a,b]=np.shape(depth_frame1)
+        topview = np.zeros(1000*b)
+        topview =topview.reshape(1000,b)
+        for i in range(0,424):
+            for j in range(0,b):
+                q=depth_frame1[i,j]
+                topview[q,j]=65536
+        return topview
+    def plot_sideview(self,depth_frame1):
+        [a,b]=np.shape(depth_frame1)
+        sideview = np.zeros(1000*a)
+        sideview =sideview.reshape(a,1000)
+        for j in range(0,512):
+            for i in range(0,a):
+                q=depth_frame1[i,j]
+                sideview[i,q]=65536
+        return sideview
+
     def run(self):
+
         
         #Initialize variables
         print_frame = None
@@ -209,19 +229,9 @@ class HandGestureObjectClass(object):
                     ret, right = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     fv_contours=self.plot_contours(right)
                     cv2.imshow('contours1',fv_contours) 
-                    # Setup SimpleBlobDetector parameters.
-                    classifier = svm.SVC(gamma=0.001)
-                    # We learn the digits on the first half of the digits
-                    # a=[[0.3],[0.9],[0.1],[0.6]]
-                    # b=[0,1,0,1]
-                    # b = list(zip(b))
-                    # print b
-                    ip=list(zip(ip))
-                    print ip
-                    #classifier.fit(ip, op)
-                    #predicted=classifier.predict(0.4)
-                    #print predicted
-
+                    sideview=self.plot_sideview(hand_filtered/66)
+                    cv2.imshow('sideview',sideview)
+                    #cv2.imshow()
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         # Close our Kinect sensor, close the window and quit.
