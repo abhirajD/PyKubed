@@ -110,31 +110,41 @@ class HandGestureObjectClass(object):
         drawing = np.zeros(frame.shape,np.uint8)
         drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
        # print defects.shape[0]
-        for i in range(defects.shape[0]):
-            k=1
-            s,e,f,d = defects[k,0]
-            start = tuple(cnt[s][0])
-            end = tuple(cnt[e][0])
-            far = tuple(cnt[f][0])
-            cv2.circle(drawing,far,5,[0,0,255],-1)
-            cv2.circle(drawing,end,5,[0,255,255],-1)
-            #rect = cv2.minAreaRect(cnt)
-            #angle=rect[2]
-            #width,height=rect[1]
-            #box = cv2.boxPoints(rect)
-            #box = np.int0(box)
-            #area = cv2.contourArea(cnt)
-            #print area
-            drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
-        return drawing,far,end
-    def plot_topview(self,depth_frame1):
+        if defects != None: 
+            for i in range(defects.shape[0]):
+                k=1
+                s,e,f,d = defects[i,0]
+                start = tuple(cnt[s][0])
+                end = tuple(cnt[e][0])
+                far = tuple(cnt[f][0])
+                if d>1000:
+                    cv2.circle(drawing,far,5,[0,0,255],-1)
+                    cv2.circle(drawing,end,5,[0,255,255],-1)
+                #rect = cv2.minAreaRect(cnt)
+                #angle=rect[2]
+                #width,height=rect[1]
+                #box = cv2.boxPoints(rect)
+                #box = np.int0(box)
+                #area = cv2.contourArea(cnt)
+                #print area
+                drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
+            return drawing,far,end
+    def plot_topview(self,depth_frame1,depth):
         [a,b]=np.shape(depth_frame1)
+        #print depth
+        depth=depth+500
+        #print depth
+        #print depth
         topview = np.zeros(1000*3*b)
         topview =topview.reshape(1000,3*b)
         for i in range(0,a):
             for j in range(0,b):
                 q=depth_frame1[i,j]
-                topview[q,j]=255
+                if q!=0 and q<(depth-490):
+                #print q
+                    q=depth-q
+                #print str(q)+'b'+str(depth)
+                    topview[q,j]=255
         return topview
     def plot_sideview(self,depth_frame1):
         [a,b]=np.shape(depth_frame1)
@@ -213,7 +223,6 @@ class HandGestureObjectClass(object):
                     if left_hand_filtered != None:
                         left_hand_depth = left_hand_filtered[d,d] 
                         left_hand_filtered[left_hand_filtered > left_hand_depth + 1200] = 0
-                        # left_hand_filtered[left_hand_filtered < left_hand_depth - 1200] = 0
                         left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered,left_hand)                                               
                     hand_filtered = left_hand_filtered_depth_frame
                     hand_filtered_8 = np.array(hand_filtered/255, dtype = np.uint8)
@@ -223,17 +232,29 @@ class HandGestureObjectClass(object):
                     fv_contours,far,end=self.plot_contours(right)
                     cv2.imshow('contours1',fv_contours)
                     temp=right_hand_filtered[end[1],end[0]]
-                    temp1=right_hand_filtered[far[1],far[0]] 
-                    topview_rh = self.plot_topview(right_hand_filtered/66)
+                    temp1=right_hand_filtered[far[1],far[0]]
+                    max_rh_depth=np.amax(right_hand_filtered)
+                    print str(max_rh_depth)+'b'+str(right_hand_depth) 
+                    topview_rh = self.plot_topview(right_hand_filtered/10,right_hand_depth/10)
                     #ret,topview_rh = cv2.threshold(topview_rh,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     #topview_rh = cv2.cvtColor(topview_rh,cv2.COLOR_GRAY2RGB)
-                    cv2.circle(topview_rh,(end[0],temp/66),2,0,-1)
-                    cv2.circle(topview_rh,(far[0],temp1/66),2,0,-1)
+                    # cv2.circle(topview_rh,(end[0],temp/66),2,0,-1)
+                    # cv2.circle(topview_rh,(far[0],temp1/66),2,0,-1)
                     cv2.imshow('topview_rh',topview_rh)
+                    topview_rh = np.array(topview_rh, dtype = np.uint8)
+
+                    ret, topview_rh = cv2.threshold(topview_rh,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    kernel = np.ones((3,3),np.uint8)
+                    
+                    right_dilation = cv2.dilate(topview_rh,kernel,iterations = 4)
+                    right_erosion = cv2.erode(right_dilation,kernel,iterations = 4)
+                    cv2.imshow('closed',right_erosion)
+                    tv_contours,far1,end1=self.plot_contours(right_erosion)
+                    cv2.imshow('tv_contours',tv_contours)
                     #topview_lh=self.plot_topview(left_hand_filtered/66)
                     #cv2.imshow('topview_lh',topview_lh)
-                    sideview_rh=self.plot_sideview(right_hand_filtered/66)
-                    cv2.imshow('sideview_rh',sideview_rh)
+                    #sideview_rh=self.plot_sideview(right_hand_filtered/66)
+                    #cv2.imshow('sideview_rh',sideview_rh)
                     #sideview_lh=self.plot_sideview(left_hand_filtered/66)
                     #cv2.imshow('sideview_lh',sideview_lh)
             if cv2.waitKey(1) & 0xFF == ord('q'):
