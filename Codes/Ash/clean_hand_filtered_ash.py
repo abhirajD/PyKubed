@@ -84,6 +84,7 @@ class HandGestureObjectClass(object):
             if(area>max_area):
                 max_area=area
                 ci=i
+        # print "::E: "+str(ci)
         return contours[ci]
             
     def min_area_contour(self, contours):
@@ -108,22 +109,62 @@ class HandGestureObjectClass(object):
 
     def get_radius(self, joint_points):
 
-        radius_left =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
+        radius_left  =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristLeft].x)-int(joint_points[PyKinectV2.JointType_HandTipLeft].x))**2+(int(joint_points[PyKinectV2.JointType_WristLeft].y)-int(joint_points[PyKinectV2.JointType_HandTipLeft].y))**2))+1
         radius_right =int( math.sqrt((int(joint_points[PyKinectV2.JointType_WristRight].x)-int(joint_points[PyKinectV2.JointType_HandTipRight].x))**2+(int(joint_points[PyKinectV2.JointType_WristRight].y)-int(joint_points[PyKinectV2.JointType_HandTipRight].y))**2))+1
         # print radiuqs_right
 
         return max(radius_right,radius_left)
 
-    def plot_topview(self,depth_frame1):
+    def plot_topview(self,depth_frame1,depth):
         [a,b]=np.shape(depth_frame1)
-        topview = np.zeros(1000*b)
-        topview =topview.reshape(1000,b)
-        for i in range(0,424):
+        #print depth
+        depth=depth+500
+        #print depth
+        #print depth
+        topview = np.zeros(1000*3*b)
+        topview =topview.reshape(1000,3*b)
+        for i in range(0,a):
             for j in range(0,b):
                 q=depth_frame1[i,j]
-                topview[q,j]=65536
+                if q!=0 and q<(depth-490):
+                #print q
+                    q=depth-q
+                #print str(q)+'b'+str(depth)
+                    topview[q,j]=255
         return topview
 
+    def plot_contours(self,frame):
+
+        img1,contours1, hierarchy1 = cv2.findContours(frame,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+        if contours1== None:
+            return 0,0,0,0
+        cnt = self.max_area_contour(contours1)
+        hull = cv2.convexHull(cnt,returnPoints = False)
+        defects = cv2.convexityDefects(cnt,hull)
+        drawing = np.zeros(frame.shape,np.uint8)
+        drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
+       # print defects.shape[0]
+        fingers = 0
+        if defects != None: 
+            for i in range(defects.shape[0]):
+                k=1
+                s,e,f,d = defects[i,0]
+                start = tuple(cnt[s][0])
+                end = tuple(cnt[e][0])
+                far = tuple(cnt[f][0])
+                if d>1000:
+                    cv2.circle(drawing,far,5,[0,0,255],-1)
+                    cv2.circle(drawing,end,5,[0,255,255],-1)
+                    fingers +=1
+                #rect = cv2.minAreaRect(cnt)
+                #angle=rect[2]
+                #width,height=rect[1]
+                #box = cv2.boxPoints(rect)
+                #box = np.int0(box)
+                #area = cv2.contourArea(cnt)
+                #print area
+                drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
+            return drawing,far,end,fingers
 
 
     def run(self):
@@ -134,15 +175,15 @@ class HandGestureObjectClass(object):
         initial = np.zeros((424,512), dtype = np.uint16)
         file = open('feature','w')
         avg = 0
-        pervious_right_hand = [0,0]
+        pervious_right_hand = None
         right_hand=None
 
         while (True):
-            #Inits per cycle
-            cmd('cls')                  #Clears the screen
+            # Inits per cycle
+            cmd('cls') # Clears the screen
             body_present = 0
 
-            #Get depth frames
+            # Get depth frames
             if self._kinect.has_new_depth_frame():
                 frame = self._kinect.get_last_depth_frame()
                 frame = np.array(frame*9, dtype= np.uint16)
@@ -151,26 +192,24 @@ class HandGestureObjectClass(object):
                 cv2.imshow('raw',depth_frame)
                 frame = None
             
-            #Check if body frames are ready and take the latest one
+            # Check if body frames are ready and take the latest one
             if self._kinect.has_new_body_frame():
                 self._bodies = self._kinect.get_last_body_frame()
 
-            #Extract Body
+            # Extract Body
             if self._bodies is not None:                
                 for i in range(0, self._kinect.max_body_count):
                     body = self._bodies.bodies[i]
                     if not body.is_tracked:
-                        print '::NO Body tracked'             
+                        # print '::NO Bo'             
                         continue 
-                        print ':: after_continue'
                     else:
-                        #print '::Body tracked'
                         body_present = 1
                         break
 
             if body_present == 1:
                 joints = body.joints 
-                #print '::Body tracked'
+
                 # convert joint coordinates to depth space 
                 joint_points = self._kinect.body_joints_to_depth_space(joints)
 
@@ -194,18 +233,15 @@ class HandGestureObjectClass(object):
                     if right_hand_filtered != None:
                         right_hand_depth = right_hand_filtered[d,d] 
                         right_hand_filtered[right_hand_filtered > right_hand_depth + 1200] = 0
-                        # right_hand_filtered[right_hand_filtered < right_hand_depth - 1200] = 0
-
                         
                         right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_hand)                     
                         neighbour = right_hand_filtered_depth_frame
-                        dx,dy,dd = self.velocity_vector(depth_frame,right_hand,pervious_right_hand)
-                        print str(dx)+":"+str(dy)+":"+str(dd)+'\n'
+                        # dx,dy,dd = self.velocity_vector(depth_frame,right_hand,pervious_right_hand)
+                        # print str(dx)+":"+str(dy)+":"+str(dd)+'\n'
 
                     if left_hand_filtered != None:
                         left_hand_depth = left_hand_filtered[d,d] 
                         left_hand_filtered[left_hand_filtered > left_hand_depth + 1200] = 0
-                        # left_hand_filtered[left_hand_filtered < left_hand_depth - 1200] = 0
                         
                         left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered,left_hand)                         
                         # ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_OTSU)
@@ -214,62 +250,35 @@ class HandGestureObjectClass(object):
                     hand_filtered_8 = np.array(hand_filtered/255, dtype = np.uint8)
                     # hand_filtered += right_hand_filtered_depth_frame
 
-                    cv2.imshow('final',hand_filtered)
-                    cv2.circle(hand_filtered_8,tuple(right_wrist),5,[150,50,255],-1)
-                    cv2.imshow('8-bit', hand_filtered_8)
+                    cv2.imshow('Hands filtered',hand_filtered)
+                    # cv2.circle(hand_filtered_8,tuple(right_wrist),5,[150,50,255],-1)
+#FRONT_VIEW
+                    right = np.array(right_hand_filtered_depth_frame/255, dtype = np.uint8)
+                    ret , right_binary  = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    # ret, right_binary1 = cv2.threshold(right,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    fv_contours,far,end,fv_fingers = self.plot_contours(right_binary)
+# TOPVIEW CODE
+                    topview = self.plot_topview(right_hand_filtered/20 , right_hand_depth/20)
+                    # cv2.imshow('topview',topview)
+                    # PRODUCE BINARY topViewRightHand
+                    topViewRightHand = np.array(topview, dtype = np.uint8)
+                    ret, topViewRightHand = cv2.threshold(topViewRightHand,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    # FILL UP THE NET IN TOP VIEW
+                    kernel = np.ones((2,2),np.uint8)                    
+                    right_dilation = cv2.dilate(topViewRightHand,kernel,iterations = 4)
+                    right_erosion = cv2.erode(right_dilation,kernel,iterations = 4)
+                    topViewRightHandFilled = right_erosion
 
-                    topview=self.plot_topview(hand_filtered/66)
+                    cv2.imshow('closed',topViewRightHandFilled)
+                    topViewRightHandContours,far1,end1,tv_fingers = self.plot_contours(topViewRightHandFilled)
+                    cv2.imshow('topViewRightHandContours', topViewRightHandContours)
 
-                    right = np.array(hand_filtered_8/255, dtype = np.uint8)
-                    ret , right1  = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-                    ret, right11 = cv2.threshold(right,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-
-                    img1,contours1, hierarchy1 = cv2.findContours(right1,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-                    cnt = self.max_area_contour(contours1)
-                    hull = cv2.convexHull(cnt,returnPoints = False)
-                    defects = cv2.convexityDefects(cnt,hull)
-                    drawing = np.zeros(right_hand_filtered.shape,np.uint8)
-                    drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
-                    print defects.shape[0]
-                    fingers = 0
                     
-                    avg1=0
-                    # for i in range(defects.shape[0]):
-                    #     s,e,f,d = defects[i,0]
-                    #     start = tuple(cnt[s][0])
-                    #     end = tuple(cnt[e][0])
-                    #     far = tuple(cnt[f][0])
-                    #     # d = tuple(cnt[d][0])
-                    #     # print  str(i) + ":" +str(d)
-                    #     if d >= 0:
-                    #         fingers = fingers+1
-                    #         cv2.circle(drawing,start,5,[255,0,255],-1)
-                    #         cv2.circle(drawing,far,5,[0,0,255],-1)
-                    #         cv2.line(drawing,start,end,[0,255,0],2)
-                    #         # cv2.circle(drawing,end,5,[0,255,255],-1)
-                    #     avg1 +=d
-                        
-                    avg = avg1 / defects.shape[0]
-                    # print avg
-                    # rect = cv2.minAreaRect(cnt)
-                    # print rect+++++
-                    # box = cv2.boxPoints(rect)
-                    # box = np.int0(box)
-                    # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
-                    print fingers
-                    
-                    file.write("::"+str(fingers)+"\n")
-                    
-                    # print right_wrist
-                    drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
-
-                    cv2.imshow('contours1',drawing)
-                    
-                    cv2.imshow('topview',topview)
+                    print ":FINGERS: "+str(fv_fingers)+':::'+str(tv_fingers)+'\n' 
+                   
             if right_hand != None:
                 pervious_right_hand = right_hand
-
-
+        
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
                 file.close()
