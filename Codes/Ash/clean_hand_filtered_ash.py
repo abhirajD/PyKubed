@@ -114,6 +114,18 @@ class HandGestureObjectClass(object):
 
         return max(radius_right,radius_left)
 
+    def plot_topview(self,depth_frame1):
+        [a,b]=np.shape(depth_frame1)
+        topview = np.zeros(1000*b)
+        topview =topview.reshape(1000,b)
+        for i in range(0,424):
+            for j in range(0,b):
+                q=depth_frame1[i,j]
+                topview[q,j]=65536
+        return topview
+
+
+
     def run(self):
         
         #Initialize variables
@@ -206,8 +218,9 @@ class HandGestureObjectClass(object):
                     cv2.circle(hand_filtered_8,tuple(right_wrist),5,[150,50,255],-1)
                     cv2.imshow('8-bit', hand_filtered_8)
 
+                    topview=self.plot_topview(hand_filtered/66)
 
-                    right = np.array(right_hand_filtered/255, dtype = np.uint8)
+                    right = np.array(hand_filtered_8/255, dtype = np.uint8)
                     ret , right1  = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     ret, right11 = cv2.threshold(right,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
@@ -217,33 +230,33 @@ class HandGestureObjectClass(object):
                     defects = cv2.convexityDefects(cnt,hull)
                     drawing = np.zeros(right_hand_filtered.shape,np.uint8)
                     drawing = cv2.cvtColor(drawing,cv2.COLOR_GRAY2RGB)
-                    # print defects.shape[0]
+                    print defects.shape[0]
                     fingers = 0
                     
                     avg1=0
-                    for i in range(defects.shape[0]):
-                        s,e,f,d = defects[i,0]
-                        start = tuple(cnt[s][0])
-                        end = tuple(cnt[e][0])
-                        far = tuple(cnt[f][0])
-                        # d = tuple(cnt[d][0])
-                        # print  str(i) + ":" +str(d)
-                        if d >= avg/2:
-                            fingers = fingers+1
-                            cv2.circle(drawing,start,5,[255,0,255],-1)
-                            cv2.circle(drawing,far,5,[0,0,255],-1)
-                            cv2.line(drawing,start,end,[0,255,0],2)
-                            # cv2.circle(drawing,end,5,[0,255,255],-1)
-                        avg1 +=d
+                    # for i in range(defects.shape[0]):
+                    #     s,e,f,d = defects[i,0]
+                    #     start = tuple(cnt[s][0])
+                    #     end = tuple(cnt[e][0])
+                    #     far = tuple(cnt[f][0])
+                    #     # d = tuple(cnt[d][0])
+                    #     # print  str(i) + ":" +str(d)
+                    #     if d >= 0:
+                    #         fingers = fingers+1
+                    #         cv2.circle(drawing,start,5,[255,0,255],-1)
+                    #         cv2.circle(drawing,far,5,[0,0,255],-1)
+                    #         cv2.line(drawing,start,end,[0,255,0],2)
+                    #         # cv2.circle(drawing,end,5,[0,255,255],-1)
+                    #     avg1 +=d
                         
                     avg = avg1 / defects.shape[0]
                     # print avg
                     # rect = cv2.minAreaRect(cnt)
-                    # print rect
+                    # print rect+++++
                     # box = cv2.boxPoints(rect)
                     # box = np.int0(box)
                     # cv2.drawContours(drawing,[box],0,(100,100,255),1q)
-                    # print fingers
+                    print fingers
                     
                     file.write("::"+str(fingers)+"\n")
                     
@@ -251,6 +264,8 @@ class HandGestureObjectClass(object):
                     drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
 
                     cv2.imshow('contours1',drawing)
+                    
+                    cv2.imshow('topview',topview)
             if right_hand != None:
                 pervious_right_hand = right_hand
 
