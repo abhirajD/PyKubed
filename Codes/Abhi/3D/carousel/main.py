@@ -4,8 +4,18 @@ from panda3d.core import NodePath
 from panda3d.core import LVector3
 from direct.interval.IntervalGlobal import *  # Needed to use Intervals
 from direct.gui.DirectGui import *
+from direct.gui.OnscreenImage import OnscreenImage
+from panda3d.core import TransparencyAttrib
+# Kinect Libraries
+from pykinect2 import PyKinectV2
+from pykinect2.PyKinectV2 import *
+from pykinect2 import PyKinectRuntime
+
 import sys
 import os
+import numpy as np
+import cv2
+
 # Importing math constants and functions
 from math import pi, sin, cos
 
@@ -18,15 +28,21 @@ class CarouselDemo(ShowBase):
         ShowBase.__init__(self)
 
         base.disableMouse()  # Allow manual positioning of the camera
-        camera.setPosHpr(0, -8, 2.5, 0, -9, 0)  # Set the cameras' position                                                # and orientation
+        camera.setPos(0, -10, 1)  # Set the cameras' position 
+        camera.setHpr(0, 0, 0)                         # and orientation
 
         self.keyMap = {
             "left": 0, "right": 0, "up": 0, "down": 0}
 
         taskMgr.add(self.startCarousel, "moveTask")
 
+        imageObject = OnscreenImage(image = 'env_sky.jpg', pos = (-10,0,-10))
+        imageObject.setImage('env_sky.jpg')
+        imageObject.setTransparency(TransparencyAttrib.MAlpha)
+
         self.loadModels()  # Load and position our models
         self.setupLights()  # Add some basic lighting
+
         
         self.accept("escape", sys.exit)
         self.accept("arrow_left", self.setKey, ["left", True])
