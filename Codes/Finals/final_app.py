@@ -21,10 +21,28 @@ class HandGestureObjectClass(object):
         self._bodies = None    
 
     def color_frame_process(self, color_frame, joint_points_color):
-        [right_hand,left_hand] = self.get_hand_coordinates(joint_points_color)
+        
+        right_x=int(joint_points_color[PyKinectV2.JointType_HandRight].x)
+        right_y=int(joint_points_color[PyKinectV2.JointType_HandRight].y)
+        left_x=int(joint_points_color[PyKinectV2.JointType_HandLeft].x)
+        left_y=int(joint_points_color[PyKinectV2.JointType_HandLeft].y)
+        right_x = right_x if right_x < 1080 else 1079
+        right_y = right_y if right_y < 1920 else 1919
+        left_x = left_x if left_x <  1080 else 1079
+        left_y = left_y if left_y < 1920 else 1919
+
+        right_hand = [right_x,right_y]
+        left_hand = [left_x,left_y]
+
         drawing = np.array(color_frame)
-        drawing = cv2.circle(drawing,tuple(right_hand),5,[0,0,255],1)
-        drawing = cv2.circle(drawing,tuple(left_hand),5,[0,0,255],1)
+        blur=np.array(color_frame)
+        blur=blur*0
+        blur = cv2.circle(blur,tuple(right_hand),15,[0,0,255],-1)
+        blur = cv2.circle(blur,tuple(left_hand),15,[0,0,255],-1)
+        blur=cv2.GaussianBlur(blur,(35,35),0)
+        drawing = cv2.circle(drawing,tuple(right_hand),15,[0,0,255],-1)
+        drawing = cv2.circle(drawing,tuple(left_hand),15,[0,0,255],-1)
+        drawing =np.where(blur!=0,blur,drawing)
         cv2.imshow('color_frame', drawing)
         return drawing
     
@@ -42,6 +60,7 @@ class HandGestureObjectClass(object):
         right_hand = [right_x,right_y]
         left_hand = [left_x,left_y]
         return [right_hand,left_hand]
+
     def get_shoulder_coordinates(self,joint_points):
         right_sho_x=int(joint_points[PyKinectV2.JointType_ShoulderRight].x)
         right_sho_y=int(joint_points[PyKinectV2.JointType_ShoulderRight].y)
@@ -54,6 +73,7 @@ class HandGestureObjectClass(object):
         right_sho = [right_sho_x,right_sho_y]
         left_sho = [left_sho_x,left_sho_y]
         return [right_sho,left_sho]
+
     def get_wrist_coordinates(self, joint_points):
 
         right_x=int(joint_points[PyKinectV2.JointType_WristRight].x)
@@ -73,12 +93,12 @@ class HandGestureObjectClass(object):
     def neighbourhood(self, array, radius, seed):
         neighbour = np.array(array)
         neighbour *= 0
-        print '::'+str(seed)+''
+        # print '::'+str(seed)+''
         temp = np.array(array[seed[1]-radius:seed[1]+radius, seed[0]-radius:seed[0]+radius], dtype = np.uint16)
         # cv2.imshow('hand',temp)
         # ret,temp = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-        print str(seed[1]-radius)+':'+str(seed[1]+radius)+','+str(seed[0]-radius)+':'+str(seed[0]+radius)
-        print np.shape(temp)
+        # print str(seed[1]-radius)+':'+str(seed[1]+radius)+','+str(seed[0]-radius)+':'+str(seed[0]+radius)
+        # print np.shape(temp)
 
         return temp,[(seed[1]-radius),(seed[1]+radius)],[(seed[0]-radius),(seed[0]+radius)]
 
@@ -188,7 +208,9 @@ class HandGestureObjectClass(object):
         painting = cv2.cvtColor(painting,cv2.COLOR_GRAY2RGB)
 
         pervious_right_hand = None
-        right_hand=None
+        pervious_left_hand = None
+        right_hand = None
+        left_hand = None
         
 #ANNNNNN
         ann_file = open('nn.pkl','rb')
@@ -216,7 +238,7 @@ class HandGestureObjectClass(object):
 
             if self._kinect.has_new_color_frame():
                 color_frame = self._kinect.get_last_color_frame()
-                color_frame = color_frame.reshape([1920,1080,4])
+                color_frame = color_frame.reshape([1080,1920,4])
                 #cv2.imshow('color_frame',color_frame)
 
             #Check if body frames are ready and take the latest one
@@ -349,6 +371,8 @@ class HandGestureObjectClass(object):
                 
             if right_hand != None:
                 pervious_right_hand = right_hand
+            if left_hand != None:
+                pervious_left_hand = left_hand
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
