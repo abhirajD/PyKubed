@@ -23,8 +23,8 @@ class HandGestureObjectClass(object):
     def color_frame_process(self, color_frame, joint_points_color):
         [right_hand,left_hand] = self.get_hand_coordinates(joint_points_color)
         drawing = np.array(color_frame)
-        drawing = cv2.circle(drawing,right_hand,5,[0,0,255],1)
-        drawing = cv2.circle(drawing,left_hand,5,[0,0,255],1)
+        drawing = cv2.circle(drawing,tuple(right_hand),5,[0,0,255],1)
+        drawing = cv2.circle(drawing,tuple(left_hand),5,[0,0,255],1)
         cv2.imshow('color_frame', drawing)
         return drawing
     
@@ -91,10 +91,14 @@ class HandGestureObjectClass(object):
         return array_big
 
     def velocity_vector(self,depth_frame,pervious_hand,hand):
-        dx = hand[0] - pervious_hand[0]
-        dy = hand[1] - pervious_hand[1]
-        dd = depth_frame[hand[0],hand[1]]-depth_frame[pervious_hand[0],pervious_hand[1]]
-        return [dx,dy,dd]
+        if pervious_hand == None or hand == None:
+            return[-1,-1,-1]
+        else:
+
+            dx = hand[0] - pervious_hand[0]
+            dy = hand[1] - pervious_hand[1]
+            dd = depth_frame[hand[0],hand[1]]-depth_frame[pervious_hand[0],pervious_hand[1]]
+            return [dx,dy,dd]
 
     
     def max_area_contour(self, contours):
@@ -177,11 +181,14 @@ class HandGestureObjectClass(object):
 
         print_frame = None
         depth_frame = np.zeros((424,512), dtype = np.uint16)
-        initial = np.zeros((424,512), dtype = np.uint16)
+        # initial = np.zeros((424,512), dtype = np.uint16)
         painting=np.zeros(424*512)
         painting =painting.reshape(424,512)
         painting = np.array(painting/255, dtype = np.uint8)
         painting = cv2.cvtColor(painting,cv2.COLOR_GRAY2RGB)
+
+        pervious_right_hand = None
+        right_hand=None
         
 #ANNNNNN
         ann_file = open('nn.pkl','rb')
@@ -207,9 +214,9 @@ class HandGestureObjectClass(object):
                 cv2.imshow('raw',depth_frame)
                 frame = None
 
-           if self._kinect.has_new_color_frame():
+            if self._kinect.has_new_color_frame():
                 color_frame = self._kinect.get_last_color_frame()
-                color_frame = color_frame(1920,1080,3)
+                color_frame = color_frame.reshape([1920,1080,4])
                 #cv2.imshow('color_frame',color_frame)
 
             #Check if body frames are ready and take the latest one
@@ -265,6 +272,8 @@ class HandGestureObjectClass(object):
 
                         right_hand_filtered_depth_frame = self.merge(neighbour, right_hand_filtered,right_coord1,right_coord0)                     
                         neighbour = right_hand_filtered_depth_frame
+                        right_dx,right_dy,right_dd = self.velocity_vector(depth_frame,right_hand,pervious_right_hand)
+                        print str(right_dx)+":"+str(right_dy)+":"+str(right_dd)+'\n'
 
                     if left_hand_filtered != None:
                         left_hand_depth = left_hand_filtered[d,d] 
@@ -273,6 +282,9 @@ class HandGestureObjectClass(object):
                         
                         left_hand_filtered_depth_frame = self.merge(neighbour, left_hand_filtered,left_coord1,left_coord0)                         
                         # ret,left_hand_filtered_depth_frame = cv2.threshold(left_hand_filtered_depth_frame,0,255,cv2.THRESH_OTSU)
+                        left_dx,left_dy,left_dd = self.velocity_vector(depth_frame,left_hand,pervious_left_hand)
+                        print str(left_dx)+":"+str(left_dy)+":"+str(left_dd)+'\n'
+
                                        
                     hand_filtered = left_hand_filtered_depth_frame
                     hand_filtered_8 = np.array(hand_filtered/255, dtype = np.uint8)
@@ -335,7 +347,9 @@ class HandGestureObjectClass(object):
 # AREA DETECTION
                     
                 
-                cv2.imshow
+            if right_hand != None:
+                pervious_right_hand = right_hand
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
                 file.close()

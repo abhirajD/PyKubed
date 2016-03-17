@@ -18,8 +18,13 @@ class HandGestureObjectClass(object):
         # here we will store skeleton data 
         self._bodies = None    
 
-    def color_frame_process(self, color_frame, right_hand, left_hand):
-
+    def color_frame_process(self, color_frame, joint_points_color):
+        [right_hand,left_hand] = self.get_hand_coordinates(joint_points_color)
+        drawing = np.array(color_frame)
+        drawing = cv2.circle(drawing,right_hand,5,[0,0,255],1)
+        drawing = cv2.circle(drawing,left_hand,5,[0,0,255],1)
+        cv2.imshow('color_frame', drawing)
+        return drawing
     
     def get_hand_coordinates(self, joint_points):
 
@@ -181,7 +186,7 @@ class HandGestureObjectClass(object):
         #Initialize variables
         print_frame = None
         depth_frame = np.zeros((424,512), dtype = np.uint16)
-        initial = np.zeros((424,512), dtype = np.uint16)
+        # initial = np.zeros((424,512), dtype = np.uint16)
         file = open('feature','w')
         avg = 0
         pervious_right_hand = None
@@ -191,6 +196,9 @@ class HandGestureObjectClass(object):
             # Inits per cycle
             cmd('cls') # Clears the screen
             body_present = 0
+
+            if self._kinect.has_new_color_frame():
+                color_frame = self._kinect.get_last_color_frame()
 
             # Get depth frames
             if self._kinect.has_new_depth_frame():
@@ -221,7 +229,7 @@ class HandGestureObjectClass(object):
 
                 # convert joint coordinates to depth space 
                 joint_points = self._kinect.body_joints_to_depth_space(joints)
-                joint_points_color = 
+                joint_points_color = self._kinect.body_joints_to_color_space(joints)
 
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
                 [right_wrist, left_wrist] = self.get_wrist_coordinates(joint_points)
@@ -230,6 +238,9 @@ class HandGestureObjectClass(object):
                 # d = self.get_radius(joint_points)
 
                 print_frame = np.zeros(np.shape(depth_frame))
+
+                if color_frame != None:
+                    drawing = self.color_frame_process(color_frame,joint_points_color)
                 
                 if depth_frame != None: 
                     neighbour = np.array(depth_frame)
