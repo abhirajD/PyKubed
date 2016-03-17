@@ -13,10 +13,13 @@ class HandGestureObjectClass(object):
     def __init__(self):
         
         # Kinect runtime object, we want only color and body frames 
-        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Body)
+        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Body | PyKinectV2,FrameSourceTypes_Color)
 
         # here we will store skeleton data 
         self._bodies = None    
+
+    def color_frame_process(self, color_frame, right_hand, left_hand):
+
     
     def get_hand_coordinates(self, joint_points):
 
@@ -126,11 +129,16 @@ class HandGestureObjectClass(object):
         for i in range(0,a):
             for j in range(0,b):
                 q=depth_frame1[i,j]
-                if q!=0 and q<(depth-490):
+                if q!=0:
                 #print q
                     q=depth-q
                 #print str(q)+'b'+str(depth)
                     topview[q,j]=255
+        return topview
+
+    def topViewHand(self,depth_frame,cnt):
+        topview = np.zeros(1000*3)
+
         return topview
 
     def plot_contours(self,frame):
@@ -165,6 +173,7 @@ class HandGestureObjectClass(object):
                 #print area
                 drawing = cv2.drawContours(drawing,[cnt],-1,150,1)
             return drawing,far,end,fingers
+
 
 
     def run(self):
@@ -212,12 +221,13 @@ class HandGestureObjectClass(object):
 
                 # convert joint coordinates to depth space 
                 joint_points = self._kinect.body_joints_to_depth_space(joints)
+                joint_points_color = 
 
                 [right_hand, left_hand] = self.get_hand_coordinates(joint_points)
                 [right_wrist, left_wrist] = self.get_wrist_coordinates(joint_points)
                 
-                # d = 40
-                d = self.get_radius(joint_points)
+                d = 40
+                # d = self.get_radius(joint_points)
 
                 print_frame = np.zeros(np.shape(depth_frame))
                 
@@ -257,11 +267,15 @@ class HandGestureObjectClass(object):
                     ret , right_binary  = cv2.threshold(right,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     # ret, right_binary1 = cv2.threshold(right,0,1,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     fv_contours,far,end,fv_fingers = self.plot_contours(right_binary)
+                    cv2.imshow('FRONT_VIEW contours',fv_contours)
+
 # TOPVIEW CODE
                     topview = self.plot_topview(right_hand_filtered/20 , right_hand_depth/20)
+                    cv2.imwrite('topViewHand.jpg',topview)
                     # cv2.imshow('topview',topview)
                     # PRODUCE BINARY topViewRightHand
                     topViewRightHand = np.array(topview, dtype = np.uint8)
+                    cv2.imwrite('topViewHand.jpg',topview)
                     ret, topViewRightHand = cv2.threshold(topViewRightHand,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
                     # FILL UP THE NET IN TOP VIEW
                     kernel = np.ones((2,2),np.uint8)                    

@@ -344,6 +344,10 @@ class PyKinectRuntime(object):
             joint_points[j] = self.body_joint_to_depth_space(joints[j])
 
         return joint_points
+
+    def color_frame_to_depth_space(self, depthDataPointCount, depthFrameData, depthPointCount):
+
+       return self._mapper.MapColorFrameToDepthSpace(self, depthDataPointCount, depthFrameData, depthPointCount)
     #Changed:}
 
     def kinect_frame_thread(self):

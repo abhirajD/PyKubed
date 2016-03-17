@@ -2052,6 +2052,7 @@ class ICoordinateMapper(comtypes.IUnknown):
     _case_insensitive_ = True
     _iid_ = GUID('{8784DF2D-16B0-481C-A11E-55E70BF25018}')
     _idlflags_ = []
+    
 class ICoordinateMappingChangedEventArgs(comtypes.IUnknown):
     _case_insensitive_ = True
     _iid_ = GUID('{E9A2A0BF-13BD-4A53-A157-91FC8BB41F85}')
