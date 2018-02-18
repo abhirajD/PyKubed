@@ -6,6 +6,8 @@ We have even modified the Drivers to enable fast mapping of color and depth plot
 - Skeleton map[Done]
 - Hand recognition and segmentation[Done]
     ![Segmented Hand](https://github.com/abhirajD/PyKubed/blob/master/Images/hand1.jpg)
+
+    
     ![Hand_Body Interface](https://github.com/abhirajD/PyKubed/blob/master/Codes/Abhi/hand_body.jpg)
     ![Filtered Hand](https://github.com/abhirajD/PyKubed/blob/master/Images/openhand.png)
 - Feature Extraction[Done]
